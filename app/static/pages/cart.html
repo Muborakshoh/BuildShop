@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>СохтМатериал | Тамос</title><link rel="stylesheet" href="/css/styles.css" /></head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/"><div class="brand-icon">С</div><span data-i18n="brand_full">СохтМатериал</span></a>
+    <nav class="nav" id="main-nav">
+      <a href="/"  data-i18n="nav_home">Асосӣ</a>
+      <a href="/pages/categories.html"  data-i18n="nav_categories">Категорияҳо</a>
+      <a href="/pages/products.html"  data-i18n="nav_products">Маҳсулотҳо</a>
+      <a href="/pages/cart.html" class="active"><span data-i18n="nav_orders">Тамос</span> <span class="cart-badge" id="cart-count">0</span></a>
+      <a href="/pages/admin-users.html" class="admin-only" style="display:none" data-i18n="admin_users">Админ</a>
+      <a href="/pages/admin-products.html" class="admin-only" style="display:none" data-i18n="admin_products">Молҳо</a>
+    </nav>
+    <div class="topbar-right">
+      <div class="settings-bar">
+        <label class="theme-switch"><input type="checkbox" id="theme-toggle" onchange="setTheme(this.checked?'dark':'light')" /><span class="slider"></span></label>
+        <select class="lang-select" id="lang-select" onchange="setLang(this.value)"><option value="tj">TJ</option><option value="ru">RU</option><option value="en">EN</option></select>
+      </div>
+      <a href="/pages/auth.html" id="auth-link" class="btn btn-primary btn-login" data-i18n="login">Ворид шудан</a>
+      <button class="burger" id="burger" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+<div class="mobile-overlay" id="mobile-overlay" onclick="toggleMenu()"></div>
+<main class="layout">
+  <h1 style="font-size:24px;font-weight:800;margin-bottom:24px" data-i18n="cart_title">Сабади хариди шумо</h1>
+  <div id="cart-list" class="cart-list"></div>
+  <div id="cart-summary" class="cart-summary" style="display:none">
+    <div>
+      <span data-i18n="cart_total" style="font-size:16px;color:var(--text2)">Ҳамагӣ:</span>
+      <span id="cart-total" class="cart-total"></span>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <button class="btn btn-outline" onclick="clearCart()" data-i18n="cart_clear">Пок кардан</button>
+      <button class="btn btn-gradient" onclick="checkout()" data-i18n="cart_checkout">Тасдиқи фармоиш</button>
+    </div>
+  </div>
+</main>
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand" data-i18n="brand_full">СохтМатериал</div>
+      <p data-i18n="footer_desc">Маводҳои сохтмонии баландсифат аз беҳтарин истеҳсолкунандагон.</p>
+    </div>
+    <div>
+      <h4 data-i18n="footer_nav">Навигатсия</h4>
+      <a href="/" data-i18n="nav_home">Асосӣ</a>
+      <a href="/pages/products.html" data-i18n="nav_products">Маҳсулотҳо</a>
+    </div>
+    <div>
+      <h4 data-i18n="footer_contact">Тамос</h4>
+      <a href="tel:+992000000000">+992 (00) 000-00-00</a>
+      <a href="mailto:info@sokhtmaterial.tj">info@sokhtmaterial.tj</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; 2024 СохтМатериал</span>
+    <span data-i18n="footer_rights">Ҳамаи ҳуқуқҳо маҳфузанд</span>
+  </div>
+</footer>
+<div class="toast-container" id="toast-container"></div>
+<script>
+function toggleMenu(){
+  document.getElementById("main-nav").classList.toggle("open");
+  document.getElementById("burger").classList.toggle("open");
+  document.getElementById("mobile-overlay").classList.toggle("open");
+  document.body.style.overflow=document.getElementById("main-nav").classList.contains("open")?"hidden":"";
+}
+</script>
+<script src="/js/api.js"></script><script src="/js/i18n.js"></script><script src="/js/theme.js"></script><script src="/js/cart.js"></script>
+</body></html>

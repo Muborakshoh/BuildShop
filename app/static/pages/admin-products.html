@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>СохтМатериал | Молҳо</title><link rel="stylesheet" href="/css/styles.css" /></head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/"><div class="brand-icon">С</div><span data-i18n="brand_full">СохтМатериал</span></a>
+    <nav class="nav" id="main-nav">
+      <a href="/" data-i18n="nav_home">Асосӣ</a>
+      <a href="/pages/admin-users.html" data-i18n="admin_users">Корбарон</a>
+      <a href="/pages/admin-products.html" class="active" data-i18n="admin_products">Молҳо</a>
+      <a href="/pages/products.html" data-i18n="nav_products">Маҳсулотҳо</a>
+    </nav>
+    <div class="topbar-right">
+      <div class="settings-bar">
+        <label class="theme-switch"><input type="checkbox" id="theme-toggle" onchange="setTheme(this.checked?'dark':'light')" /><span class="slider"></span></label>
+        <select class="lang-select" id="lang-select" onchange="setLang(this.value)"><option value="tj">TJ</option><option value="ru">RU</option><option value="en">EN</option></select>
+      </div>
+      <a href="/pages/auth.html" id="auth-link" class="btn btn-primary btn-login" data-i18n="login">Ворид шудан</a>
+      <button class="burger" id="burger" onclick="toggleMenu()"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+</header>
+<div class="mobile-overlay" id="mobile-overlay" onclick="toggleMenu()"></div>
+<main class="layout">
+  <div class="admin-header">
+    <h1 data-i18n="products_title">Идоракунии молҳо</h1>
+    <div><button class="btn btn-outline" id="add-category-btn" data-i18n="add_category">Категория</button><button class="btn btn-primary" id="add-product-btn" data-i18n="add_product">Мол илова кардан</button></div>
+  </div>
+  <table class="data-table"><thead><tr><th data-i18n="product_image">Акс</th><th data-i18n="product_name">Ном</th><th data-i18n="product_category">Категория</th><th data-i18n="product_price">Нарх</th><th data-i18n="stock_left">Боқимонда</th><th data-i18n="actions">Амалҳо</th></tr></thead><tbody id="products-body"></tbody></table>
+  <p id="message"></p>
+</main>
+<div id="modal-root"></div>
+<div class="toast-container" id="toast-container"></div>
+<script>
+function toggleMenu(){
+  document.getElementById("main-nav").classList.toggle("open");
+  document.getElementById("burger").classList.toggle("open");
+  document.getElementById("mobile-overlay").classList.toggle("open");
+  document.body.style.overflow=document.getElementById("main-nav").classList.contains("open")?"hidden":"";
+}
+</script>
+<script src="/js/api.js"></script><script src="/js/i18n.js"></script><script src="/js/theme.js"></script><script src="/js/admin-products.js"></script>
+</body></html>

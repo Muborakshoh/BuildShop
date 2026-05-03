@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: buildshop-postgres
+    environment:
+      POSTGRES_DB: buildshop
+      POSTGRES_USER: buildshop
+      POSTGRES_PASSWORD: buildshop_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U buildshop -d buildshop"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    container_name: buildshop-backend
+    environment:
+      DATABASE_URL: postgresql+psycopg://buildshop:buildshop_password@postgres:5432/buildshop
+      SECRET_KEY: ${SECRET_KEY:-change-this-secret-in-production}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
+      CORS_ORIGINS: '["http://localhost:8000","http://127.0.0.1:8000"]'
+      FIRST_ADMIN_EMAIL: ${FIRST_ADMIN_EMAIL:-}
+      FIRST_ADMIN_PASSWORD: ${FIRST_ADMIN_PASSWORD:-}
+      FIRST_ADMIN_NAME: ${FIRST_ADMIN_NAME:-BuildShop Admin}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/code/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
