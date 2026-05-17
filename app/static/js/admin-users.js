@@ -20,9 +20,9 @@ async function loadUsers() {
     usersBody.innerHTML = users.map((u) => `
       <tr>
         <td>${u.id}</td>
-        <td>${u.full_name}</td>
-        <td>${u.email}</td>
-        <td><span class="badge ${ROLE_BADGES[u.role] || "badge--gray"}">${roleName(u.role)}</span></td>
+        <td>${escapeHtml(u.full_name)}</td>
+        <td>${escapeHtml(u.email)}</td>
+        <td><span class="badge ${ROLE_BADGES[u.role] || "badge--gray"}">${escapeHtml(roleName(u.role))}</span></td>
         <td><span class="badge ${u.is_active ? "badge--green" : "badge--danger"}">${u.is_active ? t("active") : t("blocked")}</span></td>
         <td class="actions-cell">
           <button class="btn-outline btn-sm" onclick="editUser(${u.id})">${t("edit")}</button>
@@ -75,6 +75,7 @@ async function createUser() {
     });
     closeModal();
     messageNode.textContent = t("user_created");
+    notifyAction(t("add_user"), t("user_created"));
     loadUsers();
   } catch (e) {
     messageNode.textContent = e.message;
@@ -86,8 +87,8 @@ async function editUser(id) {
   const u = users.find((x) => x.id === id);
   if (!u) return;
   showModal(`
-    <h2>${t("edit")} — ${u.full_name}</h2>
-    <input id="m-name" value="${u.full_name}" placeholder="${t("name")}" />
+    <h2>${t("edit")} — ${escapeHtml(u.full_name)}</h2>
+    <input id="m-name" value="${escapeHtml(u.full_name)}" placeholder="${t("name")}" />
     <select id="m-role">
       ${["admin","manager","seller","buyer","user"].map((r) => `<option value="${r}" ${r===u.role?"selected":""}>${t("role_"+r)}</option>`).join("")}
     </select>
@@ -114,6 +115,7 @@ async function saveUser(id) {
     });
     closeModal();
     messageNode.textContent = t("user_updated");
+    notifyAction(t("edit"), t("user_updated"));
     loadUsers();
   } catch (e) {
     messageNode.textContent = e.message;
@@ -125,6 +127,7 @@ async function deleteUser(id) {
   try {
     await API.request(`/api/users/${id}`, { method: "DELETE" });
     messageNode.textContent = t("user_deleted");
+    notifyAction(t("delete_btn"), t("user_deleted"));
     loadUsers();
   } catch (e) {
     messageNode.textContent = e.message;

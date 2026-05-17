@@ -15,6 +15,7 @@ class Category(Base):
     slug: Mapped[str] = mapped_column(String(140), unique=True, index=True, nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
     image_url: Mapped[str | None] = mapped_column(String(500))
+    translations: Mapped[str | None] = mapped_column(Text)  # JSON: {"name_ru":"...","name_en":"...","desc_ru":"...","desc_en":"..."}
 
     products = relationship("Product", back_populates="category")
 
@@ -31,6 +32,7 @@ class Product(Base):
     image_url: Mapped[str | None] = mapped_column(String(500))
     unit: Mapped[str] = mapped_column(String(20), default="шт", nullable=False, server_default="шт")
     volume: Mapped[str | None] = mapped_column(String(50))
+    translations: Mapped[str | None] = mapped_column(Text)  # JSON multilingual
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 

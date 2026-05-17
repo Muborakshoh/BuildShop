@@ -125,10 +125,22 @@ If `FIRST_ADMIN_EMAIL` and `FIRST_ADMIN_PASSWORD` are set in `.env`, the app cre
 Register:
 
 ```bash
+curl -X POST http://localhost:8000/api/auth/register/request-code \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com"}'
+
+# If SMTP is not configured, the local Docker app prints the code in:
+# docker compose logs backend
+
 curl -X POST http://localhost:8000/api/auth/register \
   -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","full_name":"Demo User","password":"strongpass123"}'
+  -d '{"email":"user@example.com","full_name":"Demo User","password":"strongpass123","verification_code":"123456"}'
 ```
+
+Email delivery is optional for local Docker. Configure `SMTP_HOST`, `SMTP_PORT`,
+`SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_EMAIL`, and `ADMIN_NOTIFICATION_EMAIL`
+in `.env` to send registration codes and admin notifications by email. Without
+SMTP, messages are printed to backend logs.
 
 Login:
 

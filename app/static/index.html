@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>СохтМатериал — Маводҳои сохтмонӣ</title>
   <link rel="stylesheet" href="/css/styles.css" />
+  <style>
+    .store-signature{max-width:1180px;margin:28px auto 0;padding:0 24px}
+    .signature-panel{display:grid;grid-template-columns:minmax(220px,1.1fr) repeat(3,minmax(160px,1fr));gap:14px;align-items:stretch}
+    .signature-main,.signature-point{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px}
+    .signature-kicker{font-size:12px;font-weight:800;color:var(--primary);text-transform:uppercase;margin-bottom:8px}
+    .signature-main h2{font-size:20px;margin:0 0 8px}
+    .signature-main p,.signature-point p{margin:0;color:var(--muted);line-height:1.5}
+    .signature-point strong{display:block;margin-bottom:6px}
+    @media(max-width:860px){.signature-panel{grid-template-columns:1fr}}
+  </style>
 </head>
 <body>
 
@@ -22,6 +32,7 @@
       <a href="/pages/cart.html"><span data-i18n="nav_orders">Тамос</span> <span class="cart-badge" id="cart-count">0</span></a>
       <a href="/pages/admin-users.html" class="admin-only" style="display:none" data-i18n="admin_users">Админ</a>
       <a href="/pages/admin-products.html" class="admin-only" style="display:none" data-i18n="admin_products">Молҳо</a>
+      <a href="/pages/admin-cms.html" class="admin-only" style="display:none">CMS</a>
     </nav>
     <div class="topbar-right">
       <div class="settings-bar">
@@ -51,7 +62,7 @@
     <p data-i18n="hero_subtitle">Маҳсулоти баландсифат, нархҳои рақобатпазир ва хизматрасонии беҳтарин барои ҳамаи эҳтиёҷоти сохтмонии шумо</p>
     <div class="hero-actions">
       <a href="/pages/products.html" class="btn btn-gradient btn-lg" data-i18n="hero_cta">Каталогро кобед</a>
-      <a href="/pages/auth.html" class="btn btn-outline btn-lg" style="color:#fff;border-color:rgba(255,255,255,.4)" data-i18n="hero_contact">Бо фурӯш тамос гиред</a>
+      <a href="#" onclick="event.preventDefault(); openContactModal()" class="btn btn-outline btn-lg" style="color:#fff;border-color:rgba(255,255,255,.4)" data-i18n="hero_contact">Бо фурӯш тамос гиред</a>
     </div>
   </div>
 </section>
@@ -71,6 +82,8 @@
     <div class="stat-label" data-i18n="stat_years">Сол тачриба</div>
   </div>
 </div>
+
+<section class="store-signature" id="store-signature" style="display:none"></section>
 
 <!-- CATEGORIES -->
 <section class="section">
@@ -131,6 +144,7 @@
 <div class="toast-container" id="toast-container"></div>
 
 <script src="/js/api.js"></script>
+<script src="/js/cms-nav.js"></script>
 <script src="/js/i18n.js"></script>
 <script src="/js/theme.js"></script>
 <script>
@@ -153,16 +167,48 @@ async function loadHomeCategories(){
     }
     grid.innerHTML = cats.map(c => `
       <a href="/pages/products.html?category=${c.id}" class="category-card slide-up">
-        <img src="${c.image_url || '/img/placeholder.svg'}" alt="${c.name}" loading="lazy" />
+        <img src="${escapeHtml(safeUrl(c.image_url))}" alt="${escapeHtml(c.name)}" loading="lazy" />
         <div class="category-card-body">
-          <h3>${c.name}</h3>
-          ${c.description ? '<p>' + c.description + '</p>' : ''}
+          <h3>${escapeHtml(c.name)}</h3>
+          ${c.description ? '<p>' + escapeHtml(c.description) + '</p>' : ''}
         </div>
       </a>
     `).join("");
   }catch(e){
-    document.getElementById("categories-grid").innerHTML = '<p class="muted">' + e.message + '</p>';
+    document.getElementById("categories-grid").innerHTML = '<p class="muted">' + escapeHtml(e.message) + '</p>';
   }
+}
+
+async function loadStoreSignature(){
+  try {
+    const settings = await API.request("/api/cms/settings/public?group=identity");
+    const values = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+    const title = values.store_promise_title;
+    const text = values.store_promise_text;
+    if (!title && !text) return;
+    const points = [
+      [values.store_point_1_title, values.store_point_1_text],
+      [values.store_point_2_title, values.store_point_2_text],
+      [values.store_point_3_title, values.store_point_3_text],
+    ].filter(([pointTitle, pointText]) => pointTitle || pointText);
+    const root = document.getElementById("store-signature");
+    root.innerHTML = `
+      <div class="signature-panel">
+        <div class="signature-main">
+          <div class="signature-kicker">${escapeHtml(values.store_badge || "BuildShop CMS")}</div>
+          <h2>${escapeHtml(title || "")}</h2>
+          <p>${escapeHtml(text || "")}</p>
+        </div>
+        ${points.map(([pointTitle, pointText]) => `
+          <div class="signature-point">
+            <strong>${escapeHtml(pointTitle || "")}</strong>
+            <p>${escapeHtml(pointText || "")}</p>
+          </div>
+        `).join("")}
+      </div>
+    `;
+    root.style.display = "";
+  } catch {}
 }
 
 // Load popular products for homepage
@@ -177,19 +223,25 @@ async function loadPopularProducts(){
     grid.innerHTML = products.map(p => `
       <div class="product-card slide-up">
         <a href="/pages/product.html?id=${p.id}">
-          <img src="${p.image_url || '/img/placeholder.svg'}" alt="${p.name}" loading="lazy" />
+          <img src="${escapeHtml(safeUrl(p.image_url))}" alt="${escapeHtml(p.name)}" loading="lazy" />
         </a>
         <div class="product-card-body">
-          <span class="product-meta">${p.category.name}</span>
-          <h3>${p.name}</h3>
+          <span class="product-meta">${escapeHtml(p.category.name)}</span>
+          <h3>${escapeHtml(p.name)}</h3>
           <div class="product-price">${money(p.price)}</div>
-          ${p.volume ? '<span class="product-unit">' + p.volume + ' ' + (p.unit || '') + '</span>' : ''}
-          <button class="btn btn-primary btn-sm" onclick="quickAdd(${p.id},'${p.name.replace(/'/g,"\\'")}',${p.price})">${t("add_to_cart")}</button>
+          ${p.volume ? '<span class="product-unit">' + escapeHtml(p.volume) + ' ' + escapeHtml(p.unit || '') + '</span>' : ''}
+          <button class="btn btn-primary btn-sm" data-id="${p.id}">${t("add_to_cart")}</button>
         </div>
       </div>
     `).join("");
+    grid.querySelectorAll("button[data-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const p = products.find((item) => item.id === Number(btn.dataset.id));
+        addToCart(p);
+      });
+    });
   }catch(e){
-    document.getElementById("popular-products").innerHTML = '<p class="muted">' + e.message + '</p>';
+    document.getElementById("popular-products").innerHTML = '<p class="muted">' + escapeHtml(e.message) + '</p>';
   }
 }
 
@@ -199,7 +251,10 @@ function quickAdd(id,name,price){
 }
 
 loadHomeCategories();
+loadStoreSignature();
 loadPopularProducts();
+
+
 </script>
 </body>
 </html>

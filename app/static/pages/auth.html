@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="ru">
-<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>СохтМатериал | Авторизатсия</title><link rel="stylesheet" href="/css/styles.css" /></head>
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>СохтМатериал | Авторизатсия</title><link rel="stylesheet" href="/css/styles.css" />
+<style>
+  .password-field{position:relative}
+  .password-field input{padding-right:96px}
+  .password-toggle{position:absolute;right:8px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--primary);font-weight:700;cursor:pointer;padding:6px 8px}
+</style>
+</head>
 <body>
 <header class="topbar">
   <div class="topbar-inner">
@@ -30,7 +36,10 @@
     <p class="subtitle" id="auth-subtitle" data-i18n="login_subtitle">Ба ҳисоби худ ворид шавед</p>
     <div id="auth-fields">
       <input id="a-email" type="email" placeholder="Email" />
-      <input id="a-password" type="password" placeholder="Пароль" />
+      <div class="password-field">
+        <input id="a-password" type="password" placeholder="Пароль" />
+        <button type="button" class="password-toggle" onclick="togglePassword('a-password', this)" data-state="hidden" data-i18n="show_password">Нишон</button>
+      </div>
     </div>
     <p id="auth-message" class="muted" style="min-height:20px;font-size:13px;margin:8px 0"></p>
     <button class="btn btn-gradient" id="auth-btn" onclick="doAuth()" data-i18n="login">Ворид шудан</button>
@@ -45,5 +54,6 @@ function toggleMenu(){
   document.body.style.overflow=document.getElementById("main-nav").classList.contains("open")?"hidden":"";
 }
 </script>
-<script src="/js/api.js"></script><script src="/js/i18n.js"></script><script src="/js/theme.js"></script><script src="/js/auth.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/cms-nav.js"></script><script src="/js/i18n.js"></script><script src="/js/theme.js"></script><script src="/js/auth.js"></script>
 </body></html>

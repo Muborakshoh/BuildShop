@@ -46,6 +46,25 @@ function money(value) {
   return Number(value).toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " сом.";
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function safeUrl(value, fallback = "/img/placeholder.svg") {
+  const url = String(value || "").trim();
+  if (!url) return fallback;
+  if (url.startsWith("/") || url.startsWith("http://") || url.startsWith("https://")) return url;
+  return fallback;
+}
+
+window.escapeHtml = escapeHtml;
+window.safeUrl = safeUrl;
+
 // ── Cart helpers
 function getCart() {
   return JSON.parse(localStorage.getItem("cart") || "[]");
@@ -111,10 +130,67 @@ function showToast(message, type = "success") {
   }
   const toast = document.createElement("div");
   toast.className = "toast " + type;
-  toast.innerHTML = `<span>${type === "success" ? "&#10003;" : type === "error" ? "&#10007;" : "&#9432;"}</span> ${message}`;
+  const icon = document.createElement("span");
+  icon.textContent = type === "success" ? "✓" : type === "error" ? "✗" : "ⓘ";
+  toast.appendChild(icon);
+  toast.appendChild(document.createTextNode(" " + String(message || "")));
   container.appendChild(toast);
   setTimeout(() => { toast.remove(); }, 3000);
 }
+
+function notifyAction(title, message, type = "success") {
+  showToast(`${title}: ${message}`, type);
+}
+
+async function openContactModal() {
+  let email = "info@sokhtmaterial.tj";
+  try {
+    const settings = await API.request("/api/cms/settings/public?group=contacts");
+    const values = Object.fromEntries(settings.map((s) => [s.key, s.value]));
+    email = values.site_email || email;
+  } catch {}
+
+  let root = document.getElementById("contact-modal-root");
+  if (!root) {
+    root = document.createElement("div");
+    root.id = "contact-modal-root";
+    document.body.appendChild(root);
+  }
+  root.innerHTML = `
+    <div class="modal-overlay" onclick="if(event.target===this)closeContactModal()">
+      <div class="modal">
+        <h2>${escapeHtml(t("contact_title"))}</h2>
+        <p class="muted">${escapeHtml(t("contact_hint"))}</p>
+        <input id="contact-email" type="email" placeholder="${escapeHtml(t("email"))}" />
+        <input id="contact-subject" placeholder="${escapeHtml(t("contact_subject"))}" />
+        <textarea id="contact-message" rows="6" placeholder="${escapeHtml(t("contact_message"))}"></textarea>
+        <div class="modal-actions">
+          <button class="btn btn-outline" onclick="closeContactModal()">${escapeHtml(t("cancel"))}</button>
+          <button class="btn btn-primary" onclick="sendContactMail('${escapeHtml(email).replace(/'/g, "\\'")}')">${escapeHtml(t("send"))}</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function closeContactModal() {
+  const root = document.getElementById("contact-modal-root");
+  if (root) root.innerHTML = "";
+}
+
+function sendContactMail(toEmail) {
+  const from = document.getElementById("contact-email")?.value.trim() || "";
+  const subject = document.getElementById("contact-subject")?.value.trim() || t("contact_subject_default");
+  const message = document.getElementById("contact-message")?.value.trim() || "";
+  const body = `${message}\n\n${t("contact_from")}: ${from}`;
+  window.location.href = `mailto:${encodeURIComponent(toEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  closeContactModal();
+}
+
+window.notifyAction = notifyAction;
+window.openContactModal = openContactModal;
+window.closeContactModal = closeContactModal;
+window.sendContactMail = sendContactMail;
 
 renderCartCount();
 syncAuthLink();

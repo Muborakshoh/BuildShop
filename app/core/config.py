@@ -12,6 +12,14 @@ class Settings(BaseSettings):
     first_admin_email: str | None = None
     first_admin_password: str | None = None
     first_admin_name: str = "BuildShop Admin"
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str = "noreply@buildshop.local"
+    smtp_use_tls: bool = True
+    admin_notification_email: str | None = None
+    registration_code_expire_minutes: int = 15
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 

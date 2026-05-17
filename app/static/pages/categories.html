@@ -60,7 +60,8 @@ function toggleMenu(){
   document.body.style.overflow=document.getElementById("main-nav").classList.contains("open")?"hidden":"";
 }
 </script>
-<script src="/js/api.js"></script><script src="/js/i18n.js"></script><script src="/js/theme.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/cms-nav.js"></script><script src="/js/i18n.js"></script><script src="/js/theme.js"></script>
 <script>
 async function loadCategories(){
   try{
@@ -69,10 +70,10 @@ async function loadCategories(){
     if(!cats.length){ grid.innerHTML='<div class="empty-state"><h3>'+t("no_categories")+'</h3></div>'; return; }
     grid.innerHTML = cats.map(c => `
       <a href="/pages/products.html?category=${c.id}" class="category-card slide-up">
-        <img src="${c.image_url || '/img/placeholder.svg'}" alt="${c.name}" loading="lazy" />
-        <div class="category-card-body"><h3>${c.name}</h3>${c.description ? '<p>'+c.description+'</p>' : ''}</div>
+        <img src="${escapeHtml(safeUrl(c.image_url))}" alt="${escapeHtml(c.name)}" loading="lazy" />
+        <div class="category-card-body"><h3>${escapeHtml(c.name)}</h3>${c.description ? '<p>'+escapeHtml(c.description)+'</p>' : ''}</div>
       </a>`).join("");
-  }catch(e){ document.getElementById("categories-grid").innerHTML='<p class="muted">'+e.message+'</p>'; }
+  }catch(e){ document.getElementById("categories-grid").innerHTML='<p class="muted">'+escapeHtml(e.message)+'</p>'; }
 }
 loadCategories();
 </script>

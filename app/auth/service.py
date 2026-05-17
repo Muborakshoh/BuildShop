@@ -1,12 +1,15 @@
-from datetime import timedelta
+import secrets
+from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.auth.models import EmailVerification
 from app.auth.repository import AuthRepository
-from app.auth.schemas import LoginRequest, RefreshRequest, RegisterRequest, TokenPair
+from app.auth.schemas import LoginRequest, RefreshRequest, RegisterCodeRequest, RegisterRequest, TokenPair
 from app.core.config import settings
-from app.core.security import create_token, decode_token, verify_password
+from app.core.email import notify_admin, send_email
+from app.core.security import create_token, decode_token, hash_password, verify_password
 from app.users.models import User
 from app.users.service import UserService
 
@@ -16,8 +19,46 @@ class AuthService:
         self.db = db
         self.repo = AuthRepository(db)
 
+    def request_registration_code(self, data: RegisterCodeRequest) -> dict[str, str]:
+        if self.repo.get_user_by_email(data.email):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        verification = EmailVerification(
+            email=data.email,
+            code_hash=hash_password(code),
+            expires_at=datetime.now(UTC) + timedelta(minutes=settings.registration_code_expire_minutes),
+        )
+        self.repo.create_email_verification(verification)
+        send_email(
+            data.email,
+            "BuildShop registration code",
+            (
+                "Your one-time registration code:\n\n"
+                f"{code}\n\n"
+                f"The code expires in {settings.registration_code_expire_minutes} minutes."
+            ),
+        )
+        return {"detail": "Verification code sent"}
+
     def register(self, data: RegisterRequest) -> tuple[User, TokenPair]:
+        verification = self.repo.latest_email_verification(data.email)
+        if not verification:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Request a registration code first")
+        if verification.attempts >= 5:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Too many invalid code attempts")
+        if not verify_password(data.verification_code, verification.code_hash):
+            verification.attempts += 1
+            self.db.add(verification)
+            self.db.commit()
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code")
+
+        verification.consumed_at = datetime.now(UTC)
+        self.db.add(verification)
         user = UserService(self.db).create_user(data)
+        notify_admin(
+            "New BuildShop registration",
+            f"New user registered:\n\nName: {user.full_name}\nEmail: {user.email}\nRole: {user.role.value}",
+        )
         return user, self._build_tokens(user)
 
     def login(self, data: LoginRequest) -> TokenPair:
@@ -56,4 +97,3 @@ class AuthService:
             claims,
         )
         return TokenPair(access_token=access, refresh_token=refresh)
-

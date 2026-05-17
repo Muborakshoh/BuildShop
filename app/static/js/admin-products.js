@@ -11,11 +11,15 @@ async function loadCategories() {
 async function loadProducts() {
   try {
     const products = await API.request("/api/products?limit=200");
+    if (!products.length) {
+      productsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--muted)">Нет товаров</td></tr>';
+      return;
+    }
     productsBody.innerHTML = products.map((p) => `
       <tr>
-        <td><img src="${p.image_url || "/img/placeholder.svg"}" style="width:50px;height:38px;object-fit:cover;border-radius:6px;background:var(--bg);" /></td>
-        <td><strong>${p.name}</strong><br/><span class="muted" style="font-size:12px;">${p.slug}</span></td>
-        <td><span class="badge badge--blue">${p.category.name}</span></td>
+        <td><img src="${escapeHtml(safeUrl(p.image_url))}" style="width:50px;height:38px;object-fit:cover;border-radius:6px;background:var(--bg);" /></td>
+        <td><strong>${escapeHtml(p.name)}</strong></td>
+        <td><span class="badge badge--blue">${escapeHtml(p.category.name)}</span></td>
         <td class="price" style="font-size:16px;">${money(p.price)}</td>
         <td>${p.stock_quantity}</td>
         <td class="actions-cell">
@@ -35,7 +39,7 @@ function showModal(html) {
 function closeModal() { modalRoot.innerHTML = ""; uploadedImageUrl = ""; }
 
 function categoryOptions(selectedId) {
-  return allCategories.map((c) => `<option value="${c.id}" ${c.id===selectedId?"selected":""}>${c.name}</option>`).join("");
+  return allCategories.map((c) => `<option value="${c.id}" ${c.id===selectedId?"selected":""}>${escapeHtml(c.name)}</option>`).join("");
 }
 
 function unitOptions(selected) {
@@ -44,13 +48,17 @@ function unitOptions(selected) {
 }
 
 document.getElementById("add-product-btn").addEventListener("click", () => {
+  if (!allCategories.length) {
+    showToast("Аввал категория илова кунед!", "error");
+    return;
+  }
   uploadedImageUrl = "";
   showModal(`
     <h2>${t("add_product")}</h2>
     <input id="m-name" placeholder="${t("product_name")}" />
     <textarea id="m-desc" rows="3" placeholder="${t("product_description")}"></textarea>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-      <input id="m-price" type="number" step="0.01" min="0" placeholder="${t("product_price")}" />
+      <input id="m-price" type="number" step="0.01" min="0.01" placeholder="${t("product_price")}" />
       <select id="m-unit">${unitOptions("шт")}</select>
     </div>
     <input id="m-volume" placeholder="Объём/вес (напр. 50кг)" />
@@ -99,7 +107,7 @@ async function uploadCatImage(input) {
     const data = await res.json();
     if (data.url) {
       catImageUrl = data.url;
-      document.getElementById("m-cat-preview").innerHTML = `<img src="${data.url}" />`;
+      document.getElementById("m-cat-preview").innerHTML = `<img src="${escapeHtml(safeUrl(data.url))}" />`;
     }
   } catch (e) { showToast(e.message, "error"); }
 }
@@ -117,46 +125,60 @@ async function uploadImage(input) {
     const data = await res.json();
     if (data.url) {
       uploadedImageUrl = data.url;
-      document.getElementById("m-preview").innerHTML = `<img src="${data.url}" />`;
+      document.getElementById("m-preview").innerHTML = `<img src="${escapeHtml(safeUrl(data.url))}" />`;
     }
   } catch (e) { showToast(e.message, "error"); }
 }
 
 async function createProduct() {
+  const name = document.getElementById("m-name").value.trim();
+  const price = parseFloat(document.getElementById("m-price").value);
+  const catId = parseInt(document.getElementById("m-category").value);
+
+  if (!name) { showToast("Номи молро нависед", "error"); return; }
+  if (!price || price <= 0) { showToast("Нархро нависед", "error"); return; }
+  if (!catId) { showToast("Категорияро интихоб кунед", "error"); return; }
+
   try {
     await API.request("/api/products", {
       method: "POST",
       body: JSON.stringify({
-        name: document.getElementById("m-name").value,
-        description: document.getElementById("m-desc").value || "Product",
-        price: parseFloat(document.getElementById("m-price").value),
-        category_id: parseInt(document.getElementById("m-category").value),
+        name: name,
+        description: document.getElementById("m-desc").value.trim() || name,
+        price: price,
+        category_id: catId,
         initial_stock: parseInt(document.getElementById("m-stock").value) || 0,
         image_url: uploadedImageUrl || null,
-        unit: document.getElementById("m-unit").value,
-        volume: document.getElementById("m-volume").value || null,
+        unit: document.getElementById("m-unit").value || "шт",
+        volume: document.getElementById("m-volume").value.trim() || null,
       }),
     });
     closeModal();
     showToast(t("product_saved"));
+    notifyAction(t("add_product"), t("product_saved"));
     loadProducts();
   } catch (e) { showToast(e.message, "error"); }
 }
 
 async function createCategory() {
+  const name = document.getElementById("m-cat-name").value.trim();
+  if (!name) { showToast("Номи категорияро нависед", "error"); return; }
+
   try {
     await API.request("/api/categories", {
       method: "POST",
       body: JSON.stringify({
-        name: document.getElementById("m-cat-name").value,
-        description: document.getElementById("m-cat-desc").value || null,
+        name: name,
+        description: document.getElementById("m-cat-desc").value.trim() || null,
         image_url: catImageUrl || null,
       }),
     });
     closeModal();
     catImageUrl = "";
     showToast(t("category_saved"));
+    notifyAction(t("add_category"), t("category_saved"));
     await loadCategories();
+    loadProducts();
   } catch (e) { showToast(e.message, "error"); }
 }
 
@@ -165,17 +187,17 @@ async function editProduct(id) {
     const p = await API.request(`/api/products/${id}`);
     uploadedImageUrl = p.image_url || "";
     showModal(`
-      <h2>${t("edit")} — ${p.name}</h2>
-      <input id="m-name" value="${p.name}" placeholder="${t("product_name")}" />
-      <textarea id="m-desc" rows="3" placeholder="${t("product_description")}">${p.description}</textarea>
+      <h2>${t("edit")} — ${escapeHtml(p.name)}</h2>
+      <input id="m-name" value="${escapeHtml(p.name)}" placeholder="${t("product_name")}" />
+      <textarea id="m-desc" rows="3" placeholder="${t("product_description")}">${escapeHtml(p.description)}</textarea>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
         <input id="m-price" type="number" step="0.01" value="${p.price}" placeholder="${t("product_price")}" />
         <select id="m-unit">${unitOptions(p.unit)}</select>
       </div>
-      <input id="m-volume" value="${p.volume || ''}" placeholder="Объём/вес" />
+      <input id="m-volume" value="${escapeHtml(p.volume || '')}" placeholder="Объём/вес" />
       <select id="m-category">${categoryOptions(p.category_id)}</select>
       <div class="image-upload" onclick="document.getElementById('m-file').click()">
-        ${p.image_url ? `<img src="${p.image_url}" />` : t("upload_image")}
+        ${p.image_url ? `<img src="${escapeHtml(safeUrl(p.image_url))}" />` : t("upload_image")}
         <input type="file" id="m-file" accept="image/*" style="display:none" onchange="uploadImage(this)" />
         <div id="m-preview"></div>
       </div>
@@ -192,17 +214,18 @@ async function updateProduct(id) {
     await API.request(`/api/products/${id}`, {
       method: "PATCH",
       body: JSON.stringify({
-        name: document.getElementById("m-name").value,
-        description: document.getElementById("m-desc").value,
+        name: document.getElementById("m-name").value.trim(),
+        description: document.getElementById("m-desc").value.trim(),
         price: parseFloat(document.getElementById("m-price").value),
         category_id: parseInt(document.getElementById("m-category").value),
         image_url: uploadedImageUrl || null,
         unit: document.getElementById("m-unit").value,
-        volume: document.getElementById("m-volume").value || null,
+        volume: document.getElementById("m-volume").value.trim() || null,
       }),
     });
     closeModal();
     showToast(t("product_saved"));
+    notifyAction(t("edit"), t("product_saved"));
     loadProducts();
   } catch (e) { showToast(e.message, "error"); }
 }
@@ -212,6 +235,7 @@ async function deleteProduct(id) {
   try {
     await API.request(`/api/products/${id}`, { method: "DELETE" });
     showToast(t("product_deleted"));
+    notifyAction(t("delete_btn"), t("product_deleted"));
     loadProducts();
   } catch (e) { showToast(e.message, "error"); }
 }

@@ -18,11 +18,18 @@ class RefreshRequest(BaseModel):
     refresh_token: str
 
 
+class RegisterCodeRequest(BaseModel):
+    email: EmailStr
+
+
+class RegisterCodeResponse(BaseModel):
+    detail: str
+
+
 class RegisterResponse(BaseModel):
     user: UserRead
     tokens: TokenPair
 
 
 class RegisterRequest(UserCreate):
-    pass
-
+    verification_code: str = Field(min_length=4, max_length=12)

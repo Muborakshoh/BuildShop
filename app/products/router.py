@@ -1,7 +1,7 @@
 import os
 import uuid
 
-from fastapi import APIRouter, Depends, Response, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_db, require_admin
@@ -21,6 +21,14 @@ router = APIRouter(prefix="/api", tags=["products"])
 
 UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024
+ALLOWED_IMAGE_TYPES = {
+    ".gif": ("image/gif", b"GIF8"),
+    ".jpg": ("image/jpeg", b"\xff\xd8\xff"),
+    ".jpeg": ("image/jpeg", b"\xff\xd8\xff"),
+    ".png": ("image/png", b"\x89PNG\r\n\x1a\n"),
+    ".webp": ("image/webp", b"RIFF"),
+}
 
 
 def product_with_stock(product: Product) -> ProductListItem:
@@ -96,11 +104,23 @@ def delete_product(product_id: int, db: Session = Depends(get_db)) -> Response:
 @router.post("/upload-image", dependencies=[Depends(require_admin)])
 async def upload_image(file: UploadFile) -> dict[str, str]:
     ext = os.path.splitext(file.filename or "img.png")[1].lower()
-    if ext not in (".png", ".jpg", ".jpeg", ".webp", ".gif"):
-        return {"error": "Unsupported file type"}
+    expected = ALLOWED_IMAGE_TYPES.get(ext)
+    if not expected:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unsupported image type")
+    expected_content_type, signature = expected
+    if file.content_type != expected_content_type:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Image content type does not match extension")
+
+    content = await file.read()
+    if len(content) > MAX_UPLOAD_SIZE:
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, detail="Image is too large")
+    if not content.startswith(signature):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid image file")
+    if ext == ".webp" and content[8:12] != b"WEBP":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid WebP file")
+
     filename = f"{uuid.uuid4().hex}{ext}"
     filepath = os.path.join(UPLOAD_DIR, filename)
-    content = await file.read()
     with open(filepath, "wb") as f:
         f.write(content)
     return {"url": f"/uploads/{filename}"}

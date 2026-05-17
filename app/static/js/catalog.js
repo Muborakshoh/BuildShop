@@ -35,13 +35,13 @@ function renderProducts(products) {
   productsNode.innerHTML = products.map((p) => `
     <div class="product-card slide-up">
       <a href="/pages/product.html?id=${p.id}">
-        <img src="${p.image_url || '/img/placeholder.svg'}" alt="${p.name}" loading="lazy" />
+        <img src="${escapeHtml(safeUrl(p.image_url))}" alt="${escapeHtml(p.name)}" loading="lazy" />
       </a>
       <div class="product-card-body">
-        <span class="product-meta">${p.category.name}</span>
-        <h3>${p.name}</h3>
+        <span class="product-meta">${escapeHtml(p.category.name)}</span>
+        <h3>${escapeHtml(p.name)}</h3>
         <div class="product-price">${money(p.price)}</div>
-        ${p.volume ? '<span class="product-unit">' + p.volume + ' ' + (p.unit || '') + '</span>' : ''}
+        ${p.volume ? '<span class="product-unit">' + escapeHtml(p.volume) + ' ' + escapeHtml(p.unit || '') + '</span>' : ''}
         <span class="product-meta">${t("stock_left")}: ${p.stock_quantity}</span>
         <button class="btn btn-primary btn-sm" data-id="${p.id}">${t("add_to_cart")}</button>
       </div>
@@ -66,7 +66,7 @@ async function loadProducts() {
     const products = await API.request(`/api/products?${params.toString()}`);
     renderProducts(products);
   } catch (e) {
-    productsNode.innerHTML = `<p class="muted text-center" style="grid-column:1/-1">${e.message}</p>`;
+    productsNode.innerHTML = `<p class="muted text-center" style="grid-column:1/-1">${escapeHtml(e.message)}</p>`;
   }
 }
 
@@ -82,5 +82,5 @@ document.getElementById("search-btn").addEventListener("click", loadProducts);
 searchNode.addEventListener("keydown", (e) => { if (e.key === "Enter") loadProducts(); });
 
 loadCategories().then(loadProducts).catch((e) => {
-  productsNode.innerHTML = `<p class="muted">${e.message}</p>`;
+  productsNode.innerHTML = `<p class="muted">${escapeHtml(e.message)}</p>`;
 });

@@ -1,3 +1,5 @@
+name: buildshop
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -28,13 +30,24 @@ services:
       FIRST_ADMIN_EMAIL: ${FIRST_ADMIN_EMAIL:-}
       FIRST_ADMIN_PASSWORD: ${FIRST_ADMIN_PASSWORD:-}
       FIRST_ADMIN_NAME: ${FIRST_ADMIN_NAME:-BuildShop Admin}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-noreply@buildshop.local}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      ADMIN_NOTIFICATION_EMAIL: ${ADMIN_NOTIFICATION_EMAIL:-}
+      REGISTRATION_CODE_EXPIRE_MINUTES: ${REGISTRATION_CODE_EXPIRE_MINUTES:-15}
     ports:
       - "8000:8000"
     volumes:
       - ./app:/code/app
+      - ./alembic:/code/alembic
+      - ./alembic.ini:/code/alembic.ini
     depends_on:
       postgres:
         condition: service_healthy
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 volumes:
   postgres_data:

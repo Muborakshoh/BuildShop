@@ -34,7 +34,7 @@ function renderReceipt() {
     .map(
       (item) => `
         <div class="cart-item">
-          <strong>${item.name}</strong>
+          <strong>${escapeHtml(item.name)}</strong>
           <input type="number" min="1" value="${item.quantity}" data-id="${item.product_id}" />
           <span>${money(item.price)}</span>
           <button data-remove="${item.product_id}">Убрать</button>
@@ -90,7 +90,7 @@ async function findProducts() {
     .map(
       (product) => `
         <button class="cash-product" data-id="${product.id}">
-          <strong>${product.name}</strong>
+          <strong>${escapeHtml(product.name)}</strong>
           <span>${money(product.price)}</span>
           <small>Остаток: ${product.stock_quantity}</small>
         </button>
@@ -138,6 +138,7 @@ document.getElementById("submit-receipt").addEventListener("click", async () => 
   const total = receiptTotal();
   const method = document.getElementById("payment-method").value;
   const payload = {
+    register_name: currentShift.register_name,
     payment_method: method,
     cash_amount: method === "cash" ? String(total) : document.getElementById("cash-amount").value || "0",
     card_amount: method === "card" ? String(total) : document.getElementById("card-amount").value || "0",

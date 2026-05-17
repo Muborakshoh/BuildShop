@@ -52,7 +52,7 @@ class CashierService:
         return self.repo.list_shifts(skip=skip, limit=limit)
 
     def create_sale(self, user: User, data: CashSaleCreate) -> CashTransaction:
-        shift = self.current_shift()
+        shift = self.current_shift(data.register_name)
         total, items = self._build_items(data.items)
         cash_amount, card_amount = self._normalize_payment(data.payment_method, data.cash_amount, data.card_amount, total)
 
@@ -85,7 +85,7 @@ class CashierService:
             raise
 
     def create_refund(self, user: User, data: CashSaleCreate) -> CashTransaction:
-        shift = self.current_shift()
+        shift = self.current_shift(data.register_name)
         total, items = self._build_items(data.items)
         cash_amount, card_amount = self._normalize_payment(data.payment_method, data.cash_amount, data.card_amount, total)
 

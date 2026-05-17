@@ -9,6 +9,7 @@ class CategoryBase(BaseModel):
     slug: str = Field(default="", max_length=140)
     description: str | None = None
     image_url: str | None = Field(default=None, max_length=500)
+    translations: str | None = None  # JSON string
 
 
 class CategoryCreate(CategoryBase):
@@ -37,6 +38,7 @@ class ProductBase(BaseModel):
     image_url: str | None = Field(default=None, max_length=500)
     unit: str = Field(default="шт", max_length=20)
     volume: str | None = Field(default=None, max_length=50)
+    translations: str | None = None  # JSON string
 
 
 class ProductCreate(ProductBase):

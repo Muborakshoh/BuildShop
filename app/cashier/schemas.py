@@ -36,6 +36,7 @@ class CashItemCreate(BaseModel):
 
 
 class CashSaleCreate(BaseModel):
+    register_name: str | None = Field(default=None, min_length=2, max_length=120)
     payment_method: PaymentMethod
     cash_amount: Decimal = Field(default=0, ge=0, max_digits=12, decimal_places=2)
     card_amount: Decimal = Field(default=0, ge=0, max_digits=12, decimal_places=2)
@@ -44,10 +45,6 @@ class CashSaleCreate(BaseModel):
 
     @model_validator(mode="after")
     def validate_payment(self) -> "CashSaleCreate":
-        if self.payment_method == PaymentMethod.CASH and self.cash_amount <= 0:
-            raise ValueError("cash_amount is required for cash payments")
-        if self.payment_method == PaymentMethod.CARD and self.card_amount <= 0:
-            raise ValueError("card_amount is required for card payments")
         if self.payment_method == PaymentMethod.MIXED and self.cash_amount + self.card_amount <= 0:
             raise ValueError("cash_amount or card_amount is required")
         return self

@@ -15,9 +15,9 @@ function renderCart() {
 
   listNode.innerHTML = cart.map((item, i) => `
     <div class="cart-item slide-up">
-      <img src="${item.image_url || '/img/placeholder.svg'}" alt="${item.name}" />
+      <img src="${escapeHtml(safeUrl(item.image_url))}" alt="${escapeHtml(item.name)}" />
       <div class="cart-item-info">
-        <h3>${item.name}</h3>
+        <h3>${escapeHtml(item.name)}</h3>
         <p>${money(item.price)} x ${item.quantity}</p>
       </div>
       <span class="price">${money(item.price * item.quantity)}</span>
