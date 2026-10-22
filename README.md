@@ -75,34 +75,11 @@ requirements.txt
 docker compose -p buildshop up --build
 ```
 
-Optional first admin:
-
-```bash
-FIRST_ADMIN_EMAIL=admin@example.com FIRST_ADMIN_PASSWORD=strongpass123 docker compose -p buildshop up --build
-```
-
 Open:
 
 - Frontend: http://localhost:8000
 - Cashier: http://localhost:8000/pages/cashier.html
 - Swagger: http://localhost:8000/docs
-- OpenAPI JSON: http://localhost:8000/openapi.json
-
-PostgreSQL is published on port `5432`:
-
-```text
-Host: 127.0.0.1
-Port: 5432
-Database: buildshop
-User: buildshop
-Password: buildshop_password
-```
-
-Connection string:
-
-```text
-postgresql://buildshop:buildshop_password@127.0.0.1:5432/buildshop
-```
 
 ## Run Locally Without Docker
 
@@ -122,6 +99,7 @@ If `FIRST_ADMIN_EMAIL` and `FIRST_ADMIN_PASSWORD` are set in `.env`, the app cre
 
 ## API Examples
 
+HEAD
 Register:
 
 ```bash
@@ -150,6 +128,7 @@ curl -X POST http://localhost:8000/api/auth/login \
   -d '{"email":"user@example.com","password":"strongpass123"}'
 ```
 
+493196be4fb11707c3cf588c7a63cf890e62b7e1
 Refresh tokens:
 
 ```bash
