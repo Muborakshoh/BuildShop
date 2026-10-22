@@ -1,4 +1,13 @@
 const productsNode = document.getElementById("products");
+
+function miniStars(avg) {
+  if (!avg) return '';
+  let s = '<span class="stars" style="font-size:12px">';
+  for (let i = 1; i <= 5; i++) s += '<span class="star' + (i <= Math.round(avg) ? ' filled' : '') + '">★</span>';
+  s += '</span>';
+  return s;
+}
+
 const categoryNode = document.getElementById("category");
 const searchNode = document.getElementById("search");
 const stockNode = document.getElementById("in-stock");
@@ -35,14 +44,15 @@ function renderProducts(products) {
   productsNode.innerHTML = products.map((p) => `
     <div class="product-card slide-up">
       <a href="/pages/product.html?id=${p.id}">
-        <img src="${escapeHtml(safeUrl(p.image_url))}" alt="${escapeHtml(p.name)}" loading="lazy" />
+        <img src="${escapeHtml(safeUrl(p.image_url))}" alt="${escapeHtml(ml(p, "name"))}" loading="lazy" />
       </a>
       <div class="product-card-body">
-        <span class="product-meta">${escapeHtml(p.category.name)}</span>
-        <h3>${escapeHtml(p.name)}</h3>
+        <span class="product-meta">${escapeHtml(ml(p.category, "name"))}</span>
+        <h3>${escapeHtml(ml(p, "name"))}</h3>
         <div class="product-price">${money(p.price)}</div>
         ${p.volume ? '<span class="product-unit">' + escapeHtml(p.volume) + ' ' + escapeHtml(p.unit || '') + '</span>' : ''}
         <span class="product-meta">${t("stock_left")}: ${p.stock_quantity}</span>
+        ${p._rating ? miniStars(p._rating.avg_rating) + ' <span class="muted" style="font-size:12px">(' + p._rating.review_count + ')</span>' : ''}
         <button class="btn btn-primary btn-sm" data-id="${p.id}">${t("add_to_cart")}</button>
       </div>
     </div>
@@ -64,6 +74,17 @@ async function loadProducts() {
   if (stockNode.checked) params.set("in_stock", "true");
   try {
     const products = await API.request(`/api/products?${params.toString()}`);
+    // Fetch ratings for all products
+    try {
+      const ids = products.map((p) => p.id);
+      const ratingPromises = ids.map((id) =>
+        API.request("/api/reviews/product/" + id + "/rating").catch(() => null)
+      );
+      const ratings = await Promise.all(ratingPromises);
+      ratings.forEach((r, i) => {
+        if (r && r.review_count > 0) products[i]._rating = r;
+      });
+    } catch {}
     renderProducts(products);
   } catch (e) {
     productsNode.innerHTML = `<p class="muted text-center" style="grid-column:1/-1">${escapeHtml(e.message)}</p>`;

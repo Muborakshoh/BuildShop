@@ -70,9 +70,10 @@ class CashTransactionItem(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     transaction_id: Mapped[int] = mapped_column(ForeignKey("cash_transactions.id", ondelete="CASCADE"), nullable=False, index=True)
-    product_id: Mapped[int] = mapped_column(ForeignKey("products.id"), nullable=False, index=True)
+    product_id: Mapped[int | None] = mapped_column(ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    product_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
     transaction = relationship("CashTransaction", back_populates="items")
-    product = relationship("Product")
+    product = relationship("Product", back_populates="cash_transactions")

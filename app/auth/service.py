@@ -41,19 +41,28 @@ class AuthService:
         return {"detail": "Verification code sent"}
 
     def register(self, data: RegisterRequest) -> tuple[User, TokenPair]:
-        verification = self.repo.latest_email_verification(data.email)
-        if not verification:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Request a registration code first")
-        if verification.attempts >= 5:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Too many invalid code attempts")
-        if not verify_password(data.verification_code, verification.code_hash):
-            verification.attempts += 1
-            self.db.add(verification)
-            self.db.commit()
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code")
+        # Check if user already exists
+        if self.repo.get_user_by_email(data.email):
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
 
-        verification.consumed_at = datetime.now(UTC)
-        self.db.add(verification)
+        # Validate email verification code
+        verification = self.repo.latest_email_verification(data.email)
+        if verification:
+            if verification.attempts >= 5:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Too many invalid code attempts")
+            if not verify_password(data.verification_code, verification.code_hash):
+                verification.attempts += 1
+                self.db.add(verification)
+                self.db.commit()
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid verification code")
+            verification.consumed_at = datetime.now(UTC)
+            self.db.add(verification)
+        elif not settings.allow_registration_without_email:
+            # No verification record and open registration not explicitly allowed
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email verification required. Request a code first.",
+            )
         user = UserService(self.db).create_user(data)
         notify_admin(
             "New BuildShop registration",

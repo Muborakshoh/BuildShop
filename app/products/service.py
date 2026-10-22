@@ -150,4 +150,13 @@ class ProductService:
 
     def delete_product(self, product_id: int) -> None:
         product = self.get_product(product_id)
+        # Ensure product_name is saved in order/cash items before deletion
+        # (SET NULL will clear product_id, but product_name stays)
+        for item in product.order_items:
+            if not item.product_name:
+                item.product_name = product.name
+        for item in product.cash_transactions:
+            if not item.product_name:
+                item.product_name = product.name
+        self.db.flush()
         self.products.delete(product)

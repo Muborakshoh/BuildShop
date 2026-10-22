@@ -13,7 +13,17 @@ def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
 
+UNUSABLE_PASSWORD_PREFIX = "!"
+
+
+def is_password_usable(hashed_password: str) -> bool:
+    """Return False for accounts that cannot log in with a password (e.g. Telegram-only)."""
+    return bool(hashed_password) and not hashed_password.startswith(UNUSABLE_PASSWORD_PREFIX)
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
+    if not is_password_usable(hashed_password):
+        return False
     return pwd_context.verify(plain_password, hashed_password)
 
 

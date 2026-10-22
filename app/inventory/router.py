@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_db, require_admin
+from app.core.dependencies import get_db, require_staff
 from app.inventory.models import Inventory
 from app.inventory.schemas import InventoryAdjust, InventoryRead, InventorySet
 from app.inventory.service import InventoryService
 
-router = APIRouter(prefix="/api/inventory", tags=["inventory"], dependencies=[Depends(require_admin)])
+router = APIRouter(prefix="/api/inventory", tags=["inventory"], dependencies=[Depends(require_staff)])
 
 
 def inventory_response(inventory: Inventory) -> InventoryRead:

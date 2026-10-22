@@ -8,11 +8,11 @@ from app.cashier.models import CashOperationType, CashShiftStatus, PaymentMethod
 
 class CashShiftOpen(BaseModel):
     register_name: str = Field(min_length=2, max_length=120)
-    opening_cash: Decimal = Field(default=0, ge=0, max_digits=12, decimal_places=2)
+    opening_cash: Decimal = Field(default=0, ge=0)
 
 
 class CashShiftClose(BaseModel):
-    actual_cash: Decimal = Field(ge=0, max_digits=12, decimal_places=2)
+    actual_cash: Decimal = Field(ge=0)
 
 
 class CashShiftRead(BaseModel):
@@ -38,8 +38,8 @@ class CashItemCreate(BaseModel):
 class CashSaleCreate(BaseModel):
     register_name: str | None = Field(default=None, min_length=2, max_length=120)
     payment_method: PaymentMethod
-    cash_amount: Decimal = Field(default=0, ge=0, max_digits=12, decimal_places=2)
-    card_amount: Decimal = Field(default=0, ge=0, max_digits=12, decimal_places=2)
+    cash_amount: Decimal = Field(default=0, ge=0)
+    card_amount: Decimal = Field(default=0, ge=0)
     comment: str | None = Field(default=None, max_length=500)
     items: list[CashItemCreate] = Field(min_length=1)
 
@@ -52,7 +52,8 @@ class CashSaleCreate(BaseModel):
 
 class CashTransactionItemRead(BaseModel):
     id: int
-    product_id: int
+    product_id: int | None = None
+    product_name: str | None = None
     quantity: int
     unit_price: Decimal
 

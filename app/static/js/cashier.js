@@ -186,5 +186,9 @@ document.getElementById("close-shift").addEventListener("click", async () => {
   }
 });
 
-loadCurrentShift();
-renderReceipt();
+API.ensureRole(["admin", "manager", "seller"]).then((user) => {
+  if (user) {
+    loadCurrentShift();
+    renderReceipt();
+  }
+});

@@ -7,6 +7,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.cms.models import BlockType, MenuLocation, PageStatus
+from app.core.translations import translations_validator
 
 
 # ── Page ─────────────────────────────────────────────────────────
@@ -37,8 +38,13 @@ class PageCreate(BaseModel):
     show_in_nav: bool = False
     meta_title: str | None = None
     meta_description: str | None = None
+    og_image: str | None = None
+    robots_index: bool = True
+    canonical_url: str | None = None
     blocks: list[PageBlockIn] = Field(default_factory=list)
     translations: str | None = None
+
+    _validate_translations = translations_validator("translations")
 
 
 class PageUpdate(BaseModel):
@@ -50,7 +56,12 @@ class PageUpdate(BaseModel):
     show_in_nav: bool | None = None
     meta_title: str | None = None
     meta_description: str | None = None
+    og_image: str | None = None
+    robots_index: bool | None = None
+    canonical_url: str | None = None
     translations: str | None = None
+
+    _validate_translations = translations_validator("translations")
 
 
 class PageListItem(BaseModel):
@@ -79,6 +90,9 @@ class PageDetail(BaseModel):
     show_in_nav: bool
     meta_title: str | None
     meta_description: str | None
+    og_image: str | None = None
+    robots_index: bool = True
+    canonical_url: str | None = None
     created_by_id: int
     created_at: datetime
     updated_at: datetime
@@ -101,6 +115,8 @@ class NewsCreate(BaseModel):
     pinned: bool = False
     translations: str | None = None
 
+    _validate_translations = translations_validator("translations")
+
 
 class NewsUpdate(BaseModel):
     title: str | None = Field(default=None, min_length=1, max_length=255)
@@ -111,6 +127,8 @@ class NewsUpdate(BaseModel):
     status: PageStatus | None = None
     pinned: bool | None = None
     translations: str | None = None
+
+    _validate_translations = translations_validator("translations")
 
 
 class NewsOut(BaseModel):
@@ -194,6 +212,7 @@ class SiteSettingIn(BaseModel):
     value_type: str = "text"
     label: str | None = None
     group_name: str = "general"
+    translations: str | None = None
 
 
 class SiteSettingOut(BaseModel):
@@ -203,6 +222,7 @@ class SiteSettingOut(BaseModel):
     value_type: str
     label: str | None
     group_name: str
+    translations: str | None = None
 
     class Config:
         from_attributes = True
@@ -210,3 +230,92 @@ class SiteSettingOut(BaseModel):
 
 class SiteSettingBulkUpdate(BaseModel):
     settings: list[SiteSettingIn]
+
+
+class PageVersionOut(BaseModel):
+    id: int
+    page_id: int
+    note: str | None
+    created_by_id: int | None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class PageVersionDetail(PageVersionOut):
+    snapshot_json: str
+
+
+class MediaAssetOut(BaseModel):
+    id: int
+    filename: str
+    url: str
+    content_type: str
+    size_bytes: int
+    alt_text: str | None
+    width: int | None
+    height: int | None
+    created_by_id: int | None
+    created_at: datetime
+    used_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class MediaAssetUpdate(BaseModel):
+    alt_text: str | None = None
+
+
+class AuditLogOut(BaseModel):
+    id: int
+    actor_id: int | None
+    action: str
+    entity_type: str
+    entity_id: int | None
+    details_json: str | None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class TrackEventIn(BaseModel):
+    path: str = Field(min_length=1, max_length=500)
+    product_id: int | None = None
+    page_id: int | None = None
+    search_query: str | None = Field(default=None, max_length=255)
+
+
+class AiProductCopyIn(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    category: str | None = None
+    unit: str | None = None
+    volume: str | None = None
+    tone: str | None = "professional"
+
+
+class AiTranslateIn(BaseModel):
+    text: str = Field(min_length=1)
+    field: str = "description"
+
+
+class CalculatorIn(BaseModel):
+    area_m2: float = Field(gt=0)
+    coverage_per_unit_m2: float = Field(gt=0)
+    waste_percent: float = Field(default=10, ge=0, le=100)
+    units_per_pack: float = Field(default=1, gt=0)
+
+
+class ContactIn(BaseModel):
+    email: str = Field(min_length=3, max_length=255)
+    subject: str = Field(min_length=1, max_length=255)
+    message: str = Field(min_length=1, max_length=5000)
+
+
+class PublicStatsOut(BaseModel):
+    products: int
+    customers: int
+    orders: int
+    years_experience: int

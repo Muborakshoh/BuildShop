@@ -1,0 +1,29 @@
+{
+  "name": "СохтМатериал — Маводҳои сохтмонӣ",
+  "short_name": "СохтМатериал",
+  "description": "Маводҳои сохтмонии баландсифат аз беҳтарин истеҳсолкунандагон",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "lang": "tg",
+  "icons": [
+    {
+      "src": "/img/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": [
+    "shopping",
+    "business"
+  ]
+}

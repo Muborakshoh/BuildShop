@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>СохтМатериал</title>
   <link rel="stylesheet" href="/css/styles.css" />
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#2563eb" />
   <style>
     .page-content{max-width:900px;margin:0 auto;padding:40px 24px}
     .page-content h1{font-size:28px;margin-bottom:20px}
@@ -31,15 +33,7 @@
 
 <header class="topbar">
   <div class="topbar-inner">
-    <a class="brand" href="/"><div class="brand-icon">С</div><span data-i18n="brand_full">СохтМатериал</span></a>
-    <nav class="nav" id="main-nav">
-      <a href="/" data-i18n="nav_home">Асосӣ</a>
-      <a href="/pages/categories.html" data-i18n="nav_categories">Категорияҳо</a>
-      <a href="/pages/products.html" data-i18n="nav_products">Маҳсулотҳо</a>
-      <a href="/pages/news.html">Навигарӣ</a>
-      <a href="/pages/cart.html"><span data-i18n="nav_orders">Тамос</span> <span class="cart-badge" id="cart-count">0</span></a>
-      <a href="/pages/admin-cms.html" class="admin-only" style="display:none">CMS</a>
-    </nav>
+    <a class="brand" href="/"><div class="brand-icon">С</div><span data-i18n="brand_full" data-site-setting="site_name">СохтМатериал</span></a>
     <div class="topbar-right">
       <div class="settings-bar">
         <label class="theme-switch"><input type="checkbox" id="theme-toggle" onchange="setTheme(this.checked?'dark':'light')" /><span class="slider"></span></label>
@@ -48,11 +42,9 @@
         </select>
       </div>
       <a href="/pages/auth.html" id="auth-link" class="btn btn-primary btn-login" data-i18n="login">Ворид шудан</a>
-      <button class="burger" id="burger" onclick="toggleMenu()"><span></span><span></span><span></span></button>
     </div>
   </div>
 </header>
-<div class="mobile-overlay" id="mobile-overlay" onclick="toggleMenu()"></div>
 
 <div class="page-content" id="page-content">
   <div class="skeleton" style="height:40px;width:60%;margin-bottom:20px"></div>
@@ -62,22 +54,16 @@
 
 <footer class="footer">
   <div class="footer-bottom">
-    <span>&copy; 2024 СохтМатериал</span>
+    <span>&copy; <span data-current-year>2026</span> <span data-site-setting="site_name">СохтМатериал</span></span>
   </div>
 </footer>
 <div class="toast-container" id="toast-container"></div>
 
 <script src="/js/api.js"></script>
+<script src="/js/i18n.js"></script><script src="/js/site-settings.js"></script>
 <script src="/js/cms-nav.js"></script>
-<script src="/js/i18n.js"></script>
 <script src="/js/theme.js"></script>
 <script>
-function toggleMenu(){
-  document.getElementById("main-nav").classList.toggle("open");
-  document.getElementById("burger").classList.toggle("open");
-  document.getElementById("mobile-overlay").classList.toggle("open");
-}
-
 function renderBlock(b) {
   switch (b.block_type) {
     case "richtext":
@@ -163,11 +149,18 @@ async function loadPage() {
       if (!r.ok) throw new Error('Саҳифа ёфт нашуд');
       return r.json();
     });
-    document.title = (page.meta_title || page.title) + ' — СохтМатериал';
+    setSeoMeta({
+      title: (page.meta_title || ml(page, "title")) + ' — СохтМатериал',
+      description: page.meta_description || ml(page, "description"),
+      ogImage: page.og_image,
+      canonicalUrl: page.canonical_url,
+      robotsIndex: page.robots_index,
+    });
+    trackPageView({ page_id: page.id });
     const blocksHtml = (page.blocks || []).sort((a,b) => a.sort_order - b.sort_order).map(renderBlock).join('');
     document.getElementById("page-content").innerHTML =
-      '<h1>' + escapeHtml(page.title) + '</h1>' +
-      (page.description ? '<p class="muted" style="font-size:16px;margin-bottom:24px">'+escapeHtml(page.description)+'</p>' : '') +
+      '<h1>' + escapeHtml(ml(page, "title")) + '</h1>' +
+      (ml(page, "description") ? '<p class="muted" style="font-size:16px;margin-bottom:24px">'+escapeHtml(ml(page, "description"))+'</p>' : '') +
       blocksHtml;
     loadDynamicBlocks(page.blocks || []);
   } catch (e) {
@@ -177,5 +170,6 @@ async function loadPage() {
 
 loadPage();
 </script>
+<script src="/js/bottom-tabs.js"></script>
 </body>
 </html>

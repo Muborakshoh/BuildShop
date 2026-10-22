@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>СохтМатериал | Фармоишҳо</title><link rel="stylesheet" href="/css/styles.css" />
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#2563eb" /></head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/"><div class="brand-icon">С</div><span data-i18n="brand_full" data-site-setting="site_name">СохтМатериал</span></a>
+    <div class="topbar-right">
+      <div class="settings-bar">
+        <label class="theme-switch"><input type="checkbox" id="theme-toggle" onchange="setTheme(this.checked?'dark':'light')" /><span class="slider"></span></label>
+        <select class="lang-select" id="lang-select" onchange="setLang(this.value)"><option value="tj">TJ</option><option value="ru">RU</option><option value="en">EN</option></select>
+      </div>
+      <a href="/pages/auth.html" id="auth-link" class="btn btn-primary btn-login" data-i18n="login">Ворид шудан</a>
+    </div>
+  </div>
+</header>
+<main class="layout">
+  <h1 style="font-size:24px;font-weight:800;margin-bottom:24px" data-i18n="orders_title">Фармоишҳои ман</h1>
+  <div id="orders-list" class="orders-list"></div>
+</main>
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand" data-i18n="brand_full" data-site-setting="site_name">СохтМатериал</div>
+      <p data-i18n="footer_desc" data-site-setting="footer_desc">Маводҳои сохтмонии баландсифат аз беҳтарин истеҳсолкунандагон.</p>
+    </div>
+    <div>
+      <h4 data-i18n="footer_nav">Навигатсия</h4>
+      <a href="/" data-i18n="nav_home">Асосӣ</a>
+      <a href="/pages/products.html" data-i18n="nav_products">Маҳсулотҳо</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; <span data-current-year>2026</span> <span data-site-setting="site_name">СохтМатериал</span></span>
+    <span data-i18n="footer_rights">Ҳамаи ҳуқуқҳо маҳфузанд</span>
+  </div>
+</footer>
+<div class="toast-container" id="toast-container"></div>
+<script src="/js/api.js"></script>
+<script src="/js/i18n.js"></script><script src="/js/site-settings.js"></script><script src="/js/cms-nav.js"></script><script src="/js/theme.js"></script><script src="/js/orders.js"></script>
+<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});</script>
+<script src="/js/bottom-tabs.js"></script>
+</body></html>

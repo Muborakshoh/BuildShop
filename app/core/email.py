@@ -6,7 +6,10 @@ from app.core.config import settings
 
 def send_email(to_email: str, subject: str, body: str) -> None:
     if not settings.smtp_host:
-        print("\n".join(["[email disabled]", f"to: {to_email}", f"subject: {subject}", body]))
+        safe_body = body
+        if "code" in subject.lower() or "код" in subject.lower() or "verification" in subject.lower():
+            safe_body = "[verification code redacted — configure SMTP for production]"
+        print("\n".join(["[email disabled]", f"to: {to_email}", f"subject: {subject}", safe_body]))
         return
 
     message = EmailMessage()

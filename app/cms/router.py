@@ -1,18 +1,23 @@
 """CMS router — admin CRUD + public read endpoints."""
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import BackgroundTasks, APIRouter, Depends, Query, Response, UploadFile, Form, Request, HTTPException
 from sqlalchemy.orm import Session
 
 from app.cms.models import MenuLocation, PageStatus
 from app.cms.schemas import (
+    AiProductCopyIn, AiTranslateIn, AuditLogOut, CalculatorIn, ContactIn, PublicStatsOut,
     MenuItemCreate, MenuItemOut, MenuItemUpdate,
+    MediaAssetOut, MediaAssetUpdate,
     NewsCreate, NewsListItem, NewsOut, NewsUpdate,
     PageBlockIn, PageBlockOut,
     PageCreate, PageDetail, PageListItem, PageUpdate,
-    SiteSettingBulkUpdate, SiteSettingIn, SiteSettingOut,
+    PageVersionDetail, PageVersionOut,
+    SiteSettingBulkUpdate, SiteSettingIn, SiteSettingOut, TrackEventIn,
 )
-from app.cms.service import MenuService, NewsService, PageService, SettingsService
+from app.cms.service import GrowthService, MediaService, MenuService, NewsService, PageService, SettingsService
+from app.core.config import settings
 from app.core.dependencies import get_current_user, get_db, require_admin
+from app.core.rate_limit import rate_limit
 from app.users.models import User
 
 router = APIRouter(prefix="/api/cms", tags=["CMS"])
@@ -78,8 +83,35 @@ def public_get_settings(
     db: Session = Depends(get_db),
 ):
     """Get site settings (public, read-only)."""
+    if group and group not in settings.public_setting_groups:
+        raise HTTPException(status_code=404, detail="Settings group not found")
     svc = SettingsService(db)
-    return svc.list_all(group)
+    items = svc.list_all(group)
+    if not group:
+        items = [item for item in items if item.group_name in settings.public_setting_groups]
+    return items
+
+
+@router.get("/stats/public", response_model=PublicStatsOut)
+def public_stats(db: Session = Depends(get_db)) -> dict:
+    return GrowthService(db).public_stats()
+
+
+@router.post("/contact", status_code=204)
+def public_contact(data: ContactIn, request: Request, db: Session = Depends(get_db)) -> None:
+    rate_limit(request, key_prefix="cms:contact", max_calls=5, window_seconds=3600)
+    GrowthService(db).send_contact_message(data.email, data.subject, data.message)
+
+
+@router.post("/analytics/track", status_code=204)
+def public_track_event(data: TrackEventIn, request: Request, db: Session = Depends(get_db)) -> None:
+    rate_limit(request, key_prefix="cms:analytics", max_calls=120, window_seconds=60)
+    GrowthService(db).track_view(data.path, data.product_id, data.page_id, data.search_query)
+
+
+@router.post("/calculators/material/public")
+def public_material_calculator(data: CalculatorIn, db: Session = Depends(get_db)) -> dict:
+    return GrowthService(db).material_calculator(data.area_m2, data.coverage_per_unit_m2, data.waste_percent, data.units_per_pack)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -126,7 +158,7 @@ def admin_update_page(
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
-    return PageService(db).update_page(page_id, data)
+    return PageService(db).update_page(page_id, data, admin.id)
 
 
 @router.delete("/pages/{page_id}", status_code=204)
@@ -135,7 +167,7 @@ def admin_delete_page(
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
-    PageService(db).delete_page(page_id)
+    PageService(db).delete_page(page_id, admin.id)
 
 
 # ── Blocks ───────────────────────────────────────────────────────
@@ -179,6 +211,55 @@ def admin_reorder_blocks(
     return PageService(db).reorder_blocks(page_id, block_ids)
 
 
+@router.put("/pages/{page_id}/blocks", response_model=list[PageBlockOut])
+def admin_replace_blocks(
+    page_id: int,
+    data: list[PageBlockIn],
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    return PageService(db).replace_blocks(page_id, data, admin.id)
+
+
+@router.get("/pages/{page_id}/versions", response_model=list[PageVersionOut])
+def admin_list_page_versions(
+    page_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    return PageService(db).list_versions(page_id)
+
+
+@router.get("/pages/versions/{version_id}", response_model=PageVersionDetail)
+def admin_get_page_version(
+    version_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    return PageService(db).get_version(version_id)
+
+
+@router.post("/pages/{page_id}/versions/{version_id}/restore", response_model=PageDetail)
+def admin_restore_page_version(
+    page_id: int,
+    version_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    return PageService(db).restore_version(page_id, version_id, admin.id)
+
+
+
+@router.put("/pages/{page_id}/blocks/bulk", response_model=list[PageBlockOut])
+def admin_replace_all_blocks(
+    page_id: int,
+    blocks: list[PageBlockIn],
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Replace ALL blocks on a page atomically (single transaction)."""
+    return PageService(db).replace_blocks(page_id, blocks)
+
 # ── News ─────────────────────────────────────────────────────────
 
 @router.get("/news", response_model=list[NewsListItem])
@@ -204,20 +285,29 @@ def admin_get_news(
 @router.post("/news", response_model=NewsOut, status_code=201)
 def admin_create_news(
     data: NewsCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
-    return NewsService(db).create_news(data, admin.id)
+    article = NewsService(db).create_news(data, admin.id)
+    # Broadcast to Telegram users if published
+    if getattr(data, 'status', None) == 'published':
+        background_tasks.add_task(_broadcast_news_tg, article.title, article.summary, article.slug)
+    return article
 
 
 @router.patch("/news/{news_id}", response_model=NewsOut)
 def admin_update_news(
     news_id: int,
     data: NewsUpdate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
-    return NewsService(db).update_news(news_id, data)
+    article = NewsService(db).update_news(news_id, data)
+    if getattr(data, 'status', None) == 'published':
+        background_tasks.add_task(_broadcast_news_tg, article.title, article.summary, article.slug)
+    return article
 
 
 @router.delete("/news/{news_id}", status_code=204)
@@ -303,3 +393,97 @@ def admin_delete_setting(
     admin: User = Depends(require_admin),
 ):
     SettingsService(db).delete(key)
+
+
+# ── Growth CMS ──────────────────────────────────────────────────
+
+@router.get("/media", response_model=list[MediaAssetOut])
+def admin_list_media(
+    search: str | None = None,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    svc = MediaService(db)
+    items = svc.list_assets(search)
+    output = []
+    for item in items:
+        item.used_count = svc.used_count(item)
+        output.append(item)
+    return output
+
+
+@router.post("/media", response_model=MediaAssetOut, status_code=201)
+async def admin_upload_media(
+    file: UploadFile,
+    alt_text: str | None = Form(default=None),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    asset = MediaService(db).save_asset(file.filename or "media.png", file.content_type or "", await file.read(), alt_text, admin.id)
+    asset.used_count = 0
+    return asset
+
+
+@router.patch("/media/{asset_id}", response_model=MediaAssetOut)
+def admin_update_media(
+    asset_id: int,
+    data: MediaAssetUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    asset = MediaService(db).update_asset(asset_id, data.alt_text, admin.id)
+    asset.used_count = MediaService(db).used_count(asset)
+    return asset
+
+
+@router.delete("/media/{asset_id}", status_code=204)
+def admin_delete_media(
+    asset_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    MediaService(db).delete_asset(asset_id, admin.id)
+
+
+@router.post("/ai/product-copy")
+def admin_ai_product_copy(
+    data: AiProductCopyIn,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    return GrowthService(db).generate_product_copy(data.name, data.category, data.unit, data.volume)
+
+
+@router.post("/ai/translate")
+def admin_ai_translate(
+    data: AiTranslateIn,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    return GrowthService(db).translate_text(data.text, data.field)
+
+
+@router.get("/audit", response_model=list[AuditLogOut])
+def admin_audit_logs(
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    return GrowthService(db).audit_logs(limit)
+
+
+@router.get("/reports/dashboard")
+def admin_reports_dashboard(
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    return GrowthService(db).dashboard()
+
+
+@router.post("/calculators/material")
+def admin_material_calculator(
+    data: CalculatorIn,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    return GrowthService(db).material_calculator(data.area_m2, data.coverage_per_unit_m2, data.waste_percent, data.units_per_pack)

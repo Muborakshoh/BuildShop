@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>CMS — СохтМатериал</title>
   <link rel="stylesheet" href="/css/styles.css" />
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#2563eb" />
   <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet" />
   <style>
     .cms-layout{display:grid;grid-template-columns:240px 1fr;gap:0;min-height:calc(100vh - 64px)}
@@ -83,11 +85,6 @@
       <div class="brand-icon">С</div>
       <span data-i18n="cms_title">CMS Builder</span>
     </a>
-    <nav class="nav" id="main-nav">
-      <a href="/" data-i18n="nav_home">Асосӣ</a>
-      <a href="/pages/admin-products.html" data-i18n="admin_products">Молҳо</a>
-      <a href="/pages/admin-cms.html" class="active">CMS</a>
-    </nav>
     <div class="topbar-right">
       <div class="settings-bar">
         <label class="theme-switch">
@@ -100,13 +97,9 @@
           <option value="en">EN</option>
         </select>
       </div>
-      <button class="burger" id="burger" onclick="toggleMenu()">
-        <span></span><span></span><span></span>
-      </button>
     </div>
   </div>
 </header>
-<div class="mobile-overlay" id="mobile-overlay" onclick="toggleMenu()"></div>
 
 <div class="cms-layout">
   <!-- Sidebar -->
@@ -116,13 +109,31 @@
       <span class="icon">📄</span> <span data-i18n="cms_pages">Саҳифаҳо</span>
     </button>
     <button class="cms-nav-item" data-section="news" onclick="switchSection('news',this)">
-      <span class="icon">📰</span> <span data-i18n="cms_news">Навигарӣ</span>
+      <span class="icon">📰</span> <span data-i18n="cms_news">Хабарҳо</span>
     </button>
     <button class="cms-nav-item" data-section="menus" onclick="switchSection('menus',this)">
       <span class="icon">🔗</span> <span data-i18n="cms_menus">Менюҳо</span>
     </button>
     <button class="cms-nav-item" data-section="settings" onclick="switchSection('settings',this)">
       <span class="icon">⚙️</span> <span data-i18n="cms_settings">Танзимот</span>
+    </button>
+    <button class="cms-nav-item" data-section="media" onclick="switchSection('media',this)">
+      <span class="icon">🖼</span> <span>Media</span>
+    </button>
+    <button class="cms-nav-item" data-section="import" onclick="switchSection('import',this)">
+      <span class="icon">⇪</span> <span>Import</span>
+    </button>
+    <button class="cms-nav-item" data-section="ai" onclick="switchSection('ai',this)">
+      <span class="icon">AI</span> <span>AI</span>
+    </button>
+    <button class="cms-nav-item" data-section="audit" onclick="switchSection('audit',this)">
+      <span class="icon">☷</span> <span>Audit</span>
+    </button>
+    <button class="cms-nav-item" data-section="reports" onclick="switchSection('reports',this)">
+      <span class="icon">↗</span> <span>Reports</span>
+    </button>
+    <button class="cms-nav-item" data-section="calculators" onclick="switchSection('calculators',this)">
+      <span class="icon">▦</span> <span>Calculators</span>
     </button>
   </aside>
 
@@ -140,5 +151,6 @@
 <script src="/js/theme.js"></script>
 <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 <script src="/js/admin-cms.js"></script>
+<script src="/js/bottom-tabs.js"></script>
 </body>
 </html>

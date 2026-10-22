@@ -56,6 +56,9 @@ class Page(Base):
     show_in_nav: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     meta_title: Mapped[str | None] = mapped_column(String(255))
     meta_description: Mapped[str | None] = mapped_column(String(500))
+    og_image: Mapped[str | None] = mapped_column(String(500))
+    robots_index: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    canonical_url: Mapped[str | None] = mapped_column(String(500))
     translations: Mapped[str | None] = mapped_column(Text)  # JSON multilingual
     created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
@@ -156,3 +159,60 @@ class SiteSetting(Base):
     value_type: Mapped[str] = mapped_column(String(20), default="text", nullable=False)  # text, html, json, boolean, number
     label: Mapped[str | None] = mapped_column(String(255))  # human-readable label
     group_name: Mapped[str] = mapped_column(String(80), default="general", nullable=False)
+    translations: Mapped[str | None] = mapped_column(Text)  # JSON multilingual
+
+
+class PageVersion(Base):
+    __tablename__ = "cms_page_versions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    page_id: Mapped[int] = mapped_column(ForeignKey("cms_pages.id", ondelete="CASCADE"), nullable=False, index=True)
+    snapshot_json: Mapped[str] = mapped_column(Text, nullable=False)
+    note: Mapped[str | None] = mapped_column(String(255))
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    page = relationship("Page")
+    created_by = relationship("User", foreign_keys=[created_by_id])
+
+
+class MediaAsset(Base):
+    __tablename__ = "cms_media_assets"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    url: Mapped[str] = mapped_column(String(500), unique=True, index=True, nullable=False)
+    content_type: Mapped[str] = mapped_column(String(120), nullable=False)
+    size_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    alt_text: Mapped[str | None] = mapped_column(String(255))
+    width: Mapped[int | None] = mapped_column(Integer)
+    height: Mapped[int | None] = mapped_column(Integer)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    created_by = relationship("User", foreign_keys=[created_by_id])
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    actor_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), index=True)
+    action: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    entity_type: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    entity_id: Mapped[int | None] = mapped_column(Integer, index=True)
+    details_json: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    actor = relationship("User", foreign_keys=[actor_id])
+
+
+class PageView(Base):
+    __tablename__ = "page_views"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    path: Mapped[str] = mapped_column(String(500), nullable=False, index=True)
+    product_id: Mapped[int | None] = mapped_column(ForeignKey("products.id", ondelete="SET NULL"), index=True)
+    page_id: Mapped[int | None] = mapped_column(ForeignKey("cms_pages.id", ondelete="SET NULL"), index=True)
+    search_query: Mapped[str | None] = mapped_column(String(255), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

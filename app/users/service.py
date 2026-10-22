@@ -1,4 +1,5 @@
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.security import hash_password
@@ -40,6 +41,9 @@ class UserService:
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
         update_data = data.model_dump(exclude_unset=True)
+        if "password" in update_data:
+            password = update_data.pop("password")
+            user.hashed_password = hash_password(password)
         for field, value in update_data.items():
             setattr(user, field, value)
         return self.repo.update(user)
@@ -48,4 +52,14 @@ class UserService:
         user = self.repo.get_by_id(user_id)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-        self.repo.delete(user)
+        try:
+            self.repo.delete(user)
+        except IntegrityError:
+            self.repo.db.rollback()
+            # Cannot delete — has related data. Deactivate instead.
+            user.is_active = False
+            self.repo.update(user)
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="User has orders or other data. User was deactivated instead of deleted."
+            )

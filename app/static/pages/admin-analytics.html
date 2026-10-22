@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>СохтМатериал | Аналитика</title><link rel="stylesheet" href="/css/styles.css" />
+<link rel="manifest" href="/manifest.json" /><meta name="theme-color" content="#2563eb" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<style>
+.dashboard-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center}
+.stat-card .stat-value{font-size:28px;font-weight:800;color:var(--accent)}
+.stat-card .stat-label{font-size:13px;color:var(--muted);margin-top:4px}
+.chart-container{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px}
+.chart-container h3{margin:0 0 16px;font-size:16px}
+.chart-container canvas{max-height:300px}
+.two-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:768px){.two-cols{grid-template-columns:1fr}}
+.top-list{list-style:none;padding:0;margin:0}
+.top-list li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
+.top-list li:last-child{border-bottom:none}
+.top-list .count{font-weight:700;color:var(--accent)}
+.low-stock-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px}
+.low-stock-item:last-child{border-bottom:none}
+.stock-warn{color:#ef4444;font-weight:700}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/"><div class="brand-icon">С</div><span data-i18n="brand_full" data-site-setting="site_name">СохтМатериал</span></a>
+    <div class="topbar-right">
+      <div class="settings-bar">
+        <label class="theme-switch"><input type="checkbox" id="theme-toggle" onchange="setTheme(this.checked?'dark':'light')" /><span class="slider"></span></label>
+        <select class="lang-select" id="lang-select" onchange="setLang(this.value)"><option value="tj">TJ</option><option value="ru">RU</option><option value="en">EN</option></select>
+      </div>
+      <a href="/pages/auth.html" id="auth-link" class="btn btn-primary btn-login" data-i18n="login">Ворид шудан</a>
+    </div>
+  </div>
+</header>
+<main class="layout" style="max-width:1100px">
+  <h1 style="margin-bottom:24px">Аналитика</h1>
+  <div id="dashboard-content"><p class="muted">Загрузка...</p></div>
+</main>
+<div class="toast-container" id="toast-container"></div>
+<script src="/js/api.js"></script>
+<script src="/js/i18n.js"></script><script src="/js/site-settings.js"></script><script src="/js/cms-nav.js"></script><script src="/js/theme.js"></script>
+<script src="/js/admin-analytics.js"></script>
+<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(function(){});</script>
+<script src="/js/bottom-tabs.js"></script>
+</body></html>

@@ -61,3 +61,10 @@ class InventoryService:
         inventory.quantity -= quantity
         return self.repo.flush(inventory)
 
+    def restore_sold_stock(self, product_id: int, quantity: int) -> Inventory:
+        inventory = self.repo.get_by_product_id(product_id, for_update=True)
+        if not inventory:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Inventory not found")
+        inventory.quantity += quantity
+        return self.repo.flush(inventory)
+

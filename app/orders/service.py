@@ -4,11 +4,12 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.inventory.service import InventoryService
-from app.orders.models import Order, OrderItem, OrderStatus
+from app.orders.models import Order, OrderItem, OrderStatus, OrderStatusHistory, VALID_TRANSITIONS
 from app.orders.repository import OrderRepository
 from app.orders.schemas import OrderCreate, OrderStatusUpdate
 from app.products.repository import ProductRepository
 from app.users.models import User, UserRole
+from app.delivery.models import DeliveryZone
 
 
 class OrderService:
@@ -32,11 +33,43 @@ class OrderService:
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product {item.product_id} not found")
                 self.inventory.reserve_stock(item.product_id, item.quantity)
                 total += product.price * item.quantity
-                order_items.append(OrderItem(product_id=product.id, quantity=item.quantity, unit_price=product.price))
+                order_items.append(OrderItem(product_id=product.id, quantity=item.quantity, unit_price=product.price, product_name=product.name))
 
-            saved_order = Order(user_id=user.id, delivery_address=data.delivery_address, total_amount=total, items=order_items)
+            # Calculate delivery price
+            delivery_price = Decimal("0")
+            if data.delivery_method == "delivery" and data.delivery_zone_id:
+                zone = self.db.query(DeliveryZone).get(data.delivery_zone_id)
+                if zone and zone.is_active:
+                    if zone.min_order_for_free and total >= zone.min_order_for_free:
+                        delivery_price = Decimal("0")
+                    else:
+                        delivery_price = zone.price
+
+            saved_order = Order(
+                user_id=user.id,
+                delivery_method=data.delivery_method,
+                delivery_address=data.delivery_address,
+                delivery_zone_id=data.delivery_zone_id,
+                delivery_price=delivery_price,
+                payment_method=data.payment_method,
+                phone=data.phone,
+                comment=data.comment,
+                total_amount=total + delivery_price,
+                items=order_items,
+            )
             self.db.add(saved_order)
             self.db.flush()
+
+            # Log initial status
+            history = OrderStatusHistory(
+                order_id=saved_order.id,
+                old_status=None,
+                new_status=OrderStatus.CREATED.value,
+                comment="Order created",
+                changed_by=user.id,
+            )
+            self.orders.add_status_history(history)
+
             for item in data.items:
                 self.inventory.commit_reserved(item.product_id, item.quantity)
             self.db.commit()
@@ -59,11 +92,37 @@ class OrderService:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
         return order
 
-    def update_status(self, order_id: int, data: OrderStatusUpdate) -> Order:
+    def update_status(self, order_id: int, data: OrderStatusUpdate, changed_by_id: int | None = None) -> Order:
         order = self.orders.get(order_id)
         if not order:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Order not found")
-        if order.status == OrderStatus.CANCELLED and data.status != OrderStatus.CANCELLED:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cancelled order cannot be reopened")
-        order.status = data.status
+
+        old_status = order.status
+        new_status = data.status
+
+        # Validate transition
+        allowed = VALID_TRANSITIONS.get(old_status, [])
+        if new_status not in allowed:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Cannot transition from {old_status.value} to {new_status.value}. Allowed: {[s.value for s in allowed]}",
+            )
+
+        # Restore stock on cancellation
+        if new_status == OrderStatus.CANCELLED and old_status != OrderStatus.CANCELLED:
+            for item in order.items:
+                self.inventory.restore_sold_stock(item.product_id, item.quantity)
+
+        order.status = new_status
+
+        # Log status change
+        history = OrderStatusHistory(
+            order_id=order.id,
+            old_status=old_status.value,
+            new_status=new_status.value,
+            comment=data.comment,
+            changed_by=changed_by_id,
+        )
+        self.orders.add_status_history(history)
+
         return self.orders.update(order)

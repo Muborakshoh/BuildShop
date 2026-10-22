@@ -151,7 +151,7 @@ class CashierService:
             if not product:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product {item.product_id} not found")
             total += product.price * item.quantity
-            result.append(CashTransactionItem(product_id=product.id, quantity=item.quantity, unit_price=product.price))
+            result.append(CashTransactionItem(product_id=product.id, quantity=item.quantity, unit_price=product.price, product_name=product.name))
         return total, result
 
     def _normalize_payment(self, method: PaymentMethod, cash: Decimal, card: Decimal, total: Decimal) -> tuple[Decimal, Decimal]:

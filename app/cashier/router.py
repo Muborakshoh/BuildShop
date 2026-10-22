@@ -27,7 +27,7 @@ def current_shift(register_name: str | None = None, _: User = Depends(cashier_ro
 def close_shift(
     shift_id: int,
     payload: CashShiftClose,
-    current_user: User = Depends(manager_roles),
+    current_user: User = Depends(cashier_roles),
     db: Session = Depends(get_db),
 ) -> CashShift:
     return CashierService(db).close_shift(shift_id, current_user, payload)

@@ -134,4 +134,6 @@ async function deleteUser(id) {
   }
 }
 
-loadUsers();
+API.ensureRole(["admin"]).then((user) => {
+  if (user) loadUsers();
+});

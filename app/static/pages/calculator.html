@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ru">
+<head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>СохтМатериал | Калькулятор</title><link rel="stylesheet" href="/css/styles.css" />
+<link rel="manifest" href="/manifest.json" />
+<meta name="theme-color" content="#2563eb" />
+<style>
+.calc-page{max-width:900px;margin:0 auto}
+.calc-tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+.calc-tab{padding:10px 20px;border:2px solid var(--border);border-radius:10px;background:var(--surface);cursor:pointer;font-size:15px;font-weight:600;transition:all .2s}
+.calc-tab:hover{border-color:var(--accent)}
+.calc-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.calc-panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px}
+.calc-panel.active{display:block}
+.calc-form{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:600px){.calc-form{grid-template-columns:1fr}}
+.calc-field label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px;font-weight:600}
+.calc-field input,.calc-field select{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:15px;background:var(--bg);color:var(--text)}
+.calc-field input:focus,.calc-field select:focus{outline:none;border-color:var(--accent)}
+.calc-btn{grid-column:1/-1;margin-top:8px}
+.calc-result{margin-top:24px;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:20px;display:none}
+.calc-result.show{display:block}
+.calc-result h3{margin:0 0 16px;font-size:18px}
+.result-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:20px}
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.result-card .val{font-size:24px;font-weight:800;color:var(--accent)}
+.result-card .lbl{font-size:12px;color:var(--muted);margin-top:4px}
+.suggested-products{margin-top:16px}
+.suggested-products h4{margin:0 0 12px}
+.sug-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.sug-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.sug-card .sug-name{font-weight:600;font-size:14px}
+.sug-card .sug-price{color:var(--accent);font-weight:700}
+.sug-card .sug-qty{font-size:13px;color:var(--muted)}
+.sug-card .btn{font-size:13px;padding:6px 12px}
+.calc-info{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px}
+.calc-info p{margin:0;font-size:14px;color:var(--muted);line-height:1.6}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/"><div class="brand-icon">С</div><span data-i18n="brand_full" data-site-setting="site_name">СохтМатериал</span></a>
+    <div class="topbar-right">
+      <div class="settings-bar">
+        <label class="theme-switch"><input type="checkbox" id="theme-toggle" onchange="setTheme(this.checked?'dark':'light')" /><span class="slider"></span></label>
+        <select class="lang-select" id="lang-select" onchange="setLang(this.value)"><option value="tj">TJ</option><option value="ru">RU</option><option value="en">EN</option></select>
+      </div>
+      <a href="/pages/auth.html" id="auth-link" class="btn btn-primary btn-login" data-i18n="login">Ворид шудан</a>
+    </div>
+  </div>
+</header>
+<main class="layout calc-page">
+  <h1 data-i18n="calc_title" style="margin-bottom:8px">Калкулятори масолеҳи сохтмонӣ</h1>
+  <div class="calc-info"><p data-i18n="calc_desc">Масоҳат ва андозаи хонаро ворид кунед, мо миқдори масолеҳи лозимиро ҳисоб мекунем ва маҳсулотҳои мувофиқро пешниҳод мекунем.</p></div>
+
+  <div class="calc-tabs">
+    <button class="calc-tab active" data-tab="walls" data-i18n="calc_walls">🧱 Деворҳо</button>
+    <button class="calc-tab" data-tab="floor" data-i18n="calc_floor">🏗️ Фарш</button>
+    <button class="calc-tab" data-tab="paint" data-i18n="calc_paint">🎨 Ранг</button>
+    <button class="calc-tab" data-tab="roof" data-i18n="calc_roof">🏠 Бом</button>
+  </div>
+
+  <!-- Walls / Bricks -->
+  <div class="calc-panel active" id="panel-walls">
+    <div class="calc-form">
+      <div class="calc-field"><label data-i18n="calc_wall_length">Дарозии деворҳо (м)</label><input type="number" id="wall-length" step="0.1" min="0" value="12" /></div>
+      <div class="calc-field"><label data-i18n="calc_wall_height">Баландии девор (м)</label><input type="number" id="wall-height" step="0.1" min="0" value="3" /></div>
+      <div class="calc-field"><label data-i18n="calc_wall_thickness">Ғафсии девор (см)</label><select id="wall-thickness"><option value="12">12 (0.5 хишт)</option><option value="25" selected>25 (1 хишт)</option><option value="38">38 (1.5 хишт)</option><option value="51">51 (2 хишт)</option></select></div>
+      <div class="calc-field"><label data-i18n="calc_openings">Майдони тиреза/дарҳо (м²)</label><input type="number" id="wall-openings" step="0.1" min="0" value="6" /></div>
+      <button class="btn btn-primary calc-btn" onclick="calcWalls()" data-i18n="calc_calculate">Ҳисоб кардан</button>
+    </div>
+    <div class="calc-result" id="result-walls"></div>
+  </div>
+
+  <!-- Floor / Tiles -->
+  <div class="calc-panel" id="panel-floor">
+    <div class="calc-form">
+      <div class="calc-field"><label data-i18n="calc_floor_length">Дарозии хона (м)</label><input type="number" id="floor-length" step="0.1" min="0" value="5" /></div>
+      <div class="calc-field"><label data-i18n="calc_floor_width">Бари хона (м)</label><input type="number" id="floor-width" step="0.1" min="0" value="4" /></div>
+      <div class="calc-field"><label data-i18n="calc_tile_size">Андозаи кошин (см)</label><select id="tile-size"><option value="30">30×30</option><option value="40">40×40</option><option value="50" selected>50×50</option><option value="60">60×60</option></select></div>
+      <div class="calc-field"><label data-i18n="calc_waste">Захира % (буриш)</label><input type="number" id="floor-waste" step="1" min="0" max="30" value="10" /></div>
+      <button class="btn btn-primary calc-btn" onclick="calcFloor()" data-i18n="calc_calculate">Ҳисоб кардан</button>
+    </div>
+    <div class="calc-result" id="result-floor"></div>
+  </div>
+
+  <!-- Paint -->
+  <div class="calc-panel" id="panel-paint">
+    <div class="calc-form">
+      <div class="calc-field"><label data-i18n="calc_paint_area">Майдони рангкунӣ (м²)</label><input type="number" id="paint-area" step="0.1" min="0" value="40" /></div>
+      <div class="calc-field"><label data-i18n="calc_paint_layers">Шумораи қабатҳо</label><select id="paint-layers"><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option></select></div>
+      <div class="calc-field"><label data-i18n="calc_paint_consumption">Сарфи ранг (кг/м²)</label><input type="number" id="paint-consumption" step="0.01" min="0.01" value="0.15" /></div>
+      <button class="btn btn-primary calc-btn" onclick="calcPaint()" data-i18n="calc_calculate">Ҳисоб кардан</button>
+    </div>
+    <div class="calc-result" id="result-paint"></div>
+  </div>
+
+  <!-- Roof -->
+  <div class="calc-panel" id="panel-roof">
+    <div class="calc-form">
+      <div class="calc-field"><label data-i18n="calc_roof_length">Дарозии бом (м)</label><input type="number" id="roof-length" step="0.1" min="0" value="10" /></div>
+      <div class="calc-field"><label data-i18n="calc_roof_width">Бари бом (м)</label><input type="number" id="roof-width" step="0.1" min="0" value="6" /></div>
+      <div class="calc-field"><label data-i18n="calc_roof_angle">Нишеби бом (дараҷа)</label><input type="number" id="roof-angle" step="1" min="0" max="60" value="30" /></div>
+      <div class="calc-field"><label data-i18n="calc_roof_overlap">Рӯипӯшӣ % (захира)</label><input type="number" id="roof-overlap" step="1" min="0" max="30" value="15" /></div>
+      <button class="btn btn-primary calc-btn" onclick="calcRoof()" data-i18n="calc_calculate">Ҳисоб кардан</button>
+    </div>
+    <div class="calc-result" id="result-roof"></div>
+  </div>
+</main>
+<footer class="footer">
+  <div class="footer-inner">
+    <div>
+      <div class="footer-brand" data-i18n="brand_full" data-site-setting="site_name">СохтМатериал</div>
+      <p data-i18n="footer_desc" data-site-setting="footer_desc">Маводҳои сохтмонии баландсифат аз беҳтарин истеҳсолкунандагон.</p>
+    </div>
+    <div>
+      <h4 data-i18n="footer_nav">Навигатсия</h4>
+      <a href="/" data-i18n="nav_home">Асосӣ</a>
+      <a href="/pages/products.html" data-i18n="nav_products">Маҳсулотҳо</a>
+      <a href="/pages/calculator.html" data-i18n="nav_calculator">Калкулятор</a>
+    </div>
+    <div>
+      <h4 data-i18n="footer_contact">Тамос</h4>
+      <a href="tel:+992000000000" data-site-setting="site_phone" data-site-setting-href="site_phone">+992 (00) 000-00-00</a>
+      <a href="mailto:info@sokhtmaterial.tj" data-site-setting="site_email" data-site-setting-href="site_email">info@sokhtmaterial.tj</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; <span data-current-year>2026</span> <span data-site-setting="site_name">СохтМатериал</span></span>
+    <span data-i18n="footer_rights">Ҳамаи ҳуқуқҳо маҳфузанд</span>
+  </div>
+</footer>
+<div class="toast-container" id="toast-container"></div>
+<script src="/js/api.js"></script>
+<script src="/js/i18n.js"></script><script src="/js/site-settings.js"></script><script src="/js/cms-nav.js"></script><script src="/js/theme.js"></script><script src="/js/calculator.js"></script>
+<script>if("serviceWorker" in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});</script>
+<script src="/js/bottom-tabs.js"></script>
+</body></html>
