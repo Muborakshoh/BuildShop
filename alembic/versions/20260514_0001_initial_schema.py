@@ -46,6 +46,20 @@ def upgrade() -> None:
     _add_column_if_missing("cms_pages", "translations", "translations TEXT")
     _add_column_if_missing("cms_news", "translations", "translations TEXT")
 
+    # User extensions (telegram, phone)
+    _add_column_if_missing("users", "phone", "phone VARCHAR(20)")
+    _add_column_if_missing("users", "telegram_id", "telegram_id INTEGER UNIQUE")
+    _add_column_if_missing("users", "telegram_username", "telegram_username VARCHAR(100)")
+
+    # Order extensions (payment, delivery)
+    _add_column_if_missing("orders", "payment_method", "payment_method VARCHAR(30) NOT NULL DEFAULT 'cash'")
+    _add_column_if_missing("orders", "delivery_zone_id", "delivery_zone_id INTEGER")
+    _add_column_if_missing("orders", "delivery_price", "delivery_price NUMERIC(10,2) NOT NULL DEFAULT 0")
+
+    # Denormalized product_name
+    _add_column_if_missing("order_items", "product_name", "product_name VARCHAR(255)")
+    _add_column_if_missing("cash_transaction_items", "product_name", "product_name VARCHAR(255)")
+
 
 def downgrade() -> None:
     Base.metadata.drop_all(bind=op.get_bind())

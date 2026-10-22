@@ -9,7 +9,7 @@ services:
       POSTGRES_USER: buildshop
       POSTGRES_PASSWORD: buildshop_password
     ports:
-      - "5432:5432"
+      - "5433:5433"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -23,7 +23,7 @@ services:
     container_name: buildshop-backend
     environment:
       DATABASE_URL: postgresql+psycopg://buildshop:buildshop_password@postgres:5432/buildshop
-      SECRET_KEY: ${SECRET_KEY:-change-this-secret-in-production}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set in .env}
       ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
       REFRESH_TOKEN_EXPIRE_DAYS: ${REFRESH_TOKEN_EXPIRE_DAYS:-7}
       CORS_ORIGINS: '["http://localhost:8000","http://127.0.0.1:8000"]'
@@ -38,16 +38,41 @@ services:
       SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
       ADMIN_NOTIFICATION_EMAIL: ${ADMIN_NOTIFICATION_EMAIL:-}
       REGISTRATION_CODE_EXPIRE_MINUTES: ${REGISTRATION_CODE_EXPIRE_MINUTES:-15}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      TELEGRAM_ADMIN_CHAT_ID: ${TELEGRAM_ADMIN_CHAT_ID:-}
+      DELIVERY_FREE_THRESHOLD: ${DELIVERY_FREE_THRESHOLD:-500}
+      DELIVERY_DEFAULT_PRICE: ${DELIVERY_DEFAULT_PRICE:-30}
+      ALLOW_REGISTRATION_WITHOUT_EMAIL: ${ALLOW_REGISTRATION_WITHOUT_EMAIL:-false}
     ports:
       - "8000:8000"
     volumes:
       - ./app:/code/app
       - ./alembic:/code/alembic
       - ./alembic.ini:/code/alembic.ini
+      - ./docs:/code/docs
     depends_on:
       postgres:
         condition: service_healthy
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  telegram-bot:
+    build: .
+    container_name: buildshop-telegram-bot
+    environment:
+      DATABASE_URL: postgresql+psycopg://buildshop:buildshop_password@postgres:5432/buildshop
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set in .env}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_BOT_USERNAME: ${TELEGRAM_BOT_USERNAME:-}
+      TELEGRAM_ADMIN_CHAT_ID: ${TELEGRAM_ADMIN_CHAT_ID:-}
+    volumes:
+      - ./app:/code/app
+      - ./run_bot.py:/code/run_bot.py
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: python run_bot.py
+    restart: unless-stopped
 
 volumes:
   postgres_data:

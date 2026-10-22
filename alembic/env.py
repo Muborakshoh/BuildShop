@@ -15,6 +15,9 @@ from app.inventory import models as _inventory_models  # noqa: F401
 from app.orders import models as _orders_models  # noqa: F401
 from app.products import models as _products_models  # noqa: F401
 from app.users import models as _users_models  # noqa: F401
+from app.reviews import models as _reviews_models  # noqa: F401
+from app.promos import models as _promos_models  # noqa: F401
+from app.delivery import models as _delivery_models  # noqa: F401
 
 config = context.config
 config.set_main_option("sqlalchemy.url", settings.database_url)
