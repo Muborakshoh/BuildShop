@@ -1,12 +1,37 @@
-.DS_Store
+# Environment variables
 .env
-.venv/
+.env.local
+.env.*.local
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
+*.so
+.Python
+*.db
+*.db-journal
+
+# macOS
+.DS_Store
+
+# Uploads
+static/uploads/
+
+# Node / Frontend
+node_modules/
+dist/
+build/
+
+# Docker
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Tests
 .coverage
 htmlcov/
-postgres_data/
+.pytest_cache/
