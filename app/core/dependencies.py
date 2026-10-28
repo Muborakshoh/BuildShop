@@ -1,6 +1,4 @@
-from collections.abc import Generator
-
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -52,18 +50,27 @@ def require_admin(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
-
 def require_staff(current_user: User = Depends(get_current_user)) -> User:
     """Allow admin, manager, and seller roles."""
     if current_user.role not in (UserRole.ADMIN, UserRole.MANAGER, UserRole.SELLER):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Staff role required")
     return current_user
 
-def require_roles(*roles: UserRole) -> Callable[[User], User]:
-    def checker(current_user: User = Depends(get_current_user)) -> User:
+
+# ✅ Исправлено: require_roles теперь корректно работает с FastAPI Depends
+def require_roles(*roles: UserRole):
+    def checker(
+        current_user: User = Depends(get_current_user),
+    ) -> User:
         if current_user.role not in roles:
             allowed = ", ".join(role.value for role in roles)
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=f"Required role: {allowed}")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Required role: {allowed}",
+            )
         return current_user
 
+    # ✅ FastAPI не разрешает вложенный Depends в closure,
+    #    но Depends(checker) где checker сам вызывает Depends — работает
+    #    Альтернатива — использовать Depends напрямую в endpoint'е
     return checker

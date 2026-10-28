@@ -7,6 +7,8 @@ from app.cashier.service import CashierService
 from app.core.dependencies import get_current_user, get_db, require_roles
 from app.users.models import User, UserRole
 
+from app.cashier.schemas import XReportOut, ZReportOut
+
 cashier_roles = require_roles(UserRole.SELLER, UserRole.MANAGER, UserRole.ADMIN)
 manager_roles = require_roles(UserRole.MANAGER, UserRole.ADMIN)
 
@@ -19,9 +21,12 @@ def open_shift(payload: CashShiftOpen, current_user: User = Depends(cashier_role
 
 
 @router.get("/shifts/current", response_model=CashShiftRead)
-def current_shift(register_name: str | None = None, _: User = Depends(cashier_roles), db: Session = Depends(get_db)) -> CashShift:
-    return CashierService(db).current_shift(register_name)
-
+def current_shift(
+    register_name: str | None = None,
+    current_user: User = Depends(cashier_roles),
+    db: Session = Depends(get_db),
+) -> CashShift:
+    return CashierService(db).current_shift(register_name, current_user)
 
 @router.post("/shifts/{shift_id}/close", response_model=CashShiftRead)
 def close_shift(
@@ -34,13 +39,13 @@ def close_shift(
 
 
 @router.get("/shifts", response_model=list[CashShiftRead])
-def list_shifts(skip: int = 0, limit: int = 100, _: User = Depends(manager_roles), db: Session = Depends(get_db)) -> list[CashShift]:
+def list_shifts(skip: int = 0, limit: int = 100, current_user: User = Depends(cashier_roles), db: Session = Depends(get_db)) -> list[CashShift]:
     return CashierService(db).list_shifts(skip=skip, limit=limit)
 
 
 @router.get("/shifts/{shift_id}/summary", response_model=CashShiftSummary)
-def shift_summary(shift_id: int, _: User = Depends(manager_roles), db: Session = Depends(get_db)) -> CashShiftSummary:
-    return CashierService(db).shift_summary(shift_id)
+def shift_summary(shift_id: int, current_user: User = Depends(cashier_roles), db: Session = Depends(get_db)) -> CashShiftSummary:
+    return CashierService(db).shift_summary(shift_id, current_user)
 
 
 @router.get("/shifts/{shift_id}/transactions", response_model=list[CashTransactionRead])
@@ -58,6 +63,24 @@ def list_transactions(
 def create_sale(payload: CashSaleCreate, current_user: User = Depends(cashier_roles), db: Session = Depends(get_db)) -> CashTransaction:
     return CashierService(db).create_sale(current_user, payload)
 
+@router.get("/shifts/{shift_id}/x-report", response_model=XReportOut)
+def x_report(
+    shift_id: int,
+    current_user: User = Depends(cashier_roles),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Generate intermediate X-report (shift remains open)."""
+    return CashierService(db).x_report(shift_id, current_user)
+
+
+@router.get("/shifts/{shift_id}/z-report", response_model=ZReportOut)
+def z_report(
+    shift_id: int,
+    current_user: User = Depends(cashier_roles),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Generate final Z-report (shift must be closed)."""
+    return CashierService(db).z_report(shift_id, current_user)
 
 @router.post("/refunds", response_model=CashTransactionRead, status_code=status.HTTP_201_CREATED)
 def create_refund(payload: CashSaleCreate, current_user: User = Depends(manager_roles), db: Session = Depends(get_db)) -> CashTransaction:

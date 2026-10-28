@@ -2,6 +2,8 @@ import { useAuthStore } from '@/stores/auth'
 
 const BASE = '/api'
 
+let refreshPromise = null  // ✅ защита от race condition
+
 class ApiClient {
   async request(path, opts = {}) {
     const auth = useAuthStore()
@@ -11,7 +13,13 @@ class ApiClient {
     const res = await fetch(`${BASE}${path}`, { ...opts, headers })
 
     if (res.status === 401 && auth.refreshToken) {
-      const ok = await auth.refresh()
+      // ✅ защита от race condition: если refresh уже идёт — ждём его
+      if (!refreshPromise) {
+        refreshPromise = auth.refresh().finally(() => {
+          refreshPromise = null
+        })
+      }
+      const ok = await refreshPromise
       if (ok) {
         headers['Authorization'] = `Bearer ${auth.token}`
         const retry = await fetch(`${BASE}${path}`, { ...opts, headers })

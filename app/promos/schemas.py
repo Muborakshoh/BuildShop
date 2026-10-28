@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class PromoCodeCreate(BaseModel):
     code: str = Field(min_length=2, max_length=50)
+    user_id: int | None = Field(default=None, ge=1)  # ✅ персональный промокод
     discount_percent: Decimal | None = Field(default=None, ge=0, le=100)
     discount_amount: Decimal | None = Field(default=None, ge=0)
     min_order_amount: Decimal = Field(default=Decimal("0"), ge=0)
@@ -17,6 +18,7 @@ class PromoCodeCreate(BaseModel):
 
 
 class PromoCodeUpdate(BaseModel):
+    user_id: int | None = None
     discount_percent: Decimal | None = None
     discount_amount: Decimal | None = None
     min_order_amount: Decimal | None = Field(default=None, ge=0)
@@ -30,6 +32,7 @@ class PromoCodeUpdate(BaseModel):
 class PromoCodeOut(BaseModel):
     id: int
     code: str
+    user_id: int | None = None  # ✅
     discount_percent: Decimal | None
     discount_amount: Decimal | None
     min_order_amount: Decimal

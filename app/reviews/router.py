@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
-from app.core.dependencies import get_current_user, get_db
-from app.reviews.schemas import ProductRating, ReviewCreate, ReviewOut, ReviewUpdate
+from app.core.dependencies import get_current_user, get_db, require_admin
+from app.reviews.schemas import ProductRating, ReviewCreate, ReviewModerate, ReviewOut, ReviewUpdate
 from app.reviews.service import ReviewService
 from app.users.models import User, UserRole
 
@@ -16,6 +16,7 @@ def list_product_reviews(
     limit: int = 50,
     db: Session = Depends(get_db),
 ):
+    """List approved reviews for a product."""
     return ReviewService(db).list_by_product(product_id, skip, limit)
 
 
@@ -52,3 +53,25 @@ def delete_review(
     is_admin = user.role == UserRole.ADMIN
     ReviewService(db).delete_review(review_id, user.id, is_admin)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# --- Admin moderation endpoints ---
+
+@router.get("/admin/pending", response_model=list[ReviewOut], dependencies=[Depends(require_admin)])
+def list_pending_reviews(
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+):
+    """List reviews awaiting moderation."""
+    return ReviewService(db).list_pending(skip, limit)
+
+
+@router.patch("/admin/{review_id}/moderate", response_model=ReviewOut, dependencies=[Depends(require_admin)])
+def moderate_review(
+    review_id: int,
+    data: ReviewModerate,
+    db: Session = Depends(get_db),
+):
+    """Approve or reject a review."""
+    return ReviewService(db).moderate_review(review_id, data)

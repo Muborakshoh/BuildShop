@@ -84,3 +84,30 @@ class CashShiftSummary(BaseModel):
     cash_total: Decimal
     card_total: Decimal
     receipt_count: int
+
+class XReportOut(BaseModel):
+    """Intermediate shift report (without closing)."""
+    shift: CashShiftRead
+    sales_count: int
+    refunds_count: int
+    sales_total: Decimal
+    refunds_total: Decimal
+    cash_total: Decimal
+    card_total: Decimal
+    net_cash: Decimal  # expected_cash + cash_total
+    receipt_count: int
+    generated_at: datetime
+
+
+class ZReportOut(BaseModel):
+    """Final shift report (after closing)."""
+    shift: CashShiftRead
+    sales_count: int
+    refunds_count: int
+    sales_total: Decimal
+    refunds_total: Decimal
+    cash_total: Decimal
+    card_total: Decimal
+    discrepancy: Decimal  # actual_cash - expected_cash
+    receipt_count: int
+    generated_at: datetime

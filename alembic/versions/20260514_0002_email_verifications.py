@@ -1,12 +1,6 @@
-"""Add email verification codes.
-
-Revision ID: 20260514_0002
-Revises: 20260514_0001
-Create Date: 2026-05-14
-"""
-
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect
 
 revision = "20260514_0002"
 down_revision = "20260514_0001"
@@ -15,6 +9,10 @@ depends_on = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    if inspect(bind).has_table("email_verifications"):
+        return
+
     op.create_table(
         "email_verifications",
         sa.Column("id", sa.Integer(), nullable=False),

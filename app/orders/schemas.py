@@ -65,3 +65,17 @@ class OrderRead(BaseModel):
 class OrderStatusUpdate(BaseModel):
     status: OrderStatus
     comment: str | None = Field(default=None, max_length=500)
+
+class CartItemCreate(BaseModel):
+    product_id: int
+    quantity: int = Field(gt=0, le=1000)
+
+
+class CartItemRead(BaseModel):
+    id: int
+    product_id: int
+    quantity: int
+    product_name: str | None = None
+    product_price: Decimal | None = None
+
+    model_config = ConfigDict(from_attributes=True)

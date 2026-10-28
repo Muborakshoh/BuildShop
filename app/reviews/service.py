@@ -1,9 +1,9 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.reviews.models import Review
+from app.reviews.models import Review, ReviewStatus
 from app.reviews.repository import ReviewRepository
-from app.reviews.schemas import ReviewCreate, ReviewUpdate
+from app.reviews.schemas import ReviewCreate, ReviewModerate, ReviewUpdate
 
 
 class ReviewService:
@@ -12,7 +12,10 @@ class ReviewService:
         self.repo = ReviewRepository(db)
 
     def list_by_product(self, product_id: int, skip: int = 0, limit: int = 50) -> list[Review]:
-        return self.repo.list_by_product(product_id, skip, limit)
+        return self.repo.list_by_product(product_id, skip, limit, status=ReviewStatus.APPROVED)
+
+    def list_pending(self, skip: int = 0, limit: int = 50) -> list[Review]:
+        return self.repo.list_pending(skip, limit)
 
     def get_product_rating(self, product_id: int) -> dict:
         avg = self.repo.avg_rating_by_product(product_id)
@@ -34,6 +37,7 @@ class ReviewService:
             product_id=data.product_id,
             rating=data.rating,
             text=data.text,
+            status=ReviewStatus.PENDING,  # требует модерации
         )
         self.repo.create(review)
         self.db.commit()
@@ -49,6 +53,16 @@ class ReviewService:
             review.rating = data.rating
         if data.text is not None:
             review.text = data.text
+        review.status = ReviewStatus.PENDING  # сброс статуса при редактировании
+        self.db.commit()
+        self.db.refresh(review)
+        return review
+
+    def moderate_review(self, review_id: int, data: ReviewModerate) -> Review:
+        review = self.repo.get_by_id(review_id)
+        if not review:
+            raise HTTPException(status_code=404, detail="Review not found")
+        review.status = data.status
         self.db.commit()
         self.db.refresh(review)
         return review

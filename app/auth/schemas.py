@@ -1,11 +1,17 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field, field_validator
 
+from app.core.validators import validate_email
 from app.users.schemas import UserCreate, UserRead
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str = Field(min_length=1)
+
+    @field_validator("email")
+    @classmethod
+    def validate_email_field(cls, v: str) -> str:
+        return validate_email(v)
 
 
 class TokenPair(BaseModel):
@@ -19,7 +25,12 @@ class RefreshRequest(BaseModel):
 
 
 class RegisterCodeRequest(BaseModel):
-    email: EmailStr
+    email: str
+
+    @field_validator("email")
+    @classmethod
+    def validate_email_field(cls, v: str) -> str:
+        return validate_email(v)
 
 
 class RegisterCodeResponse(BaseModel):

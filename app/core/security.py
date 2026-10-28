@@ -1,7 +1,8 @@
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from jose import JWTError, jwt
+import jwt  # ✅ PyJWT вместо python-jose
+from jwt.exceptions import InvalidTokenError  # ✅ замена JWTError
 from passlib.context import CryptContext
 
 from app.core.config import settings
@@ -38,6 +39,5 @@ def create_token(subject: str, token_type: str, expires_delta: timedelta, extra_
 def decode_token(token: str) -> dict[str, Any]:
     try:
         return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-    except JWTError as exc:
+    except InvalidTokenError as exc:  # ✅ PyJWT использует InvalidTokenError
         raise ValueError("Invalid token") from exc
-

@@ -2,7 +2,7 @@ import csv
 import io
 import os
 import uuid
-
+from app.core.constants import UPLOAD_DIR
 from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
@@ -20,11 +20,16 @@ from app.products.schemas import (
 )
 from app.products.service import CategoryService, ProductService
 from app.users.models import User
+from pydantic import BaseModel
+
+class PaginatedProducts(BaseModel):
+    items: list[ProductListItem]
+    total: int
+    skip: int
+    limit: int
 
 router = APIRouter(prefix="/api", tags=["products"])
 
-UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 MAX_UPLOAD_SIZE = 5 * 1024 * 1024
 ALLOWED_IMAGE_TYPES = {
     ".gif": ("image/gif", b"GIF8"),
@@ -39,7 +44,6 @@ def product_with_stock(product: Product) -> ProductListItem:
     data = ProductRead.model_validate(product).model_dump()
     data["stock_quantity"] = product.inventory.quantity if product.inventory else 0
     return ProductListItem(**data)
-
 
 # ── Categories
 @router.get("/categories", response_model=list[CategoryRead])
@@ -80,6 +84,25 @@ def list_products(
     )
     return [product_with_stock(p) for p in products]
 
+@router.get("/products/paginated", response_model=PaginatedProducts)
+def list_products_paginated(
+    search: str | None = None,
+    category_id: int | None = None,
+    min_price: float | None = None,
+    max_price: float | None = None,
+    in_stock: bool | None = None,
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+) -> PaginatedProducts:
+    products = ProductService(db).list_products(search, category_id, min_price, max_price, in_stock, skip, limit)
+    total = ProductService(db).count_products(search, category_id, min_price, max_price, in_stock)
+    return PaginatedProducts(
+        items=[product_with_stock(p) for p in products],
+        total=total,
+        skip=skip,
+        limit=limit,
+    )
 
 @router.get("/products/{product_id}", response_model=ProductListItem)
 def get_product(product_id: int, db: Session = Depends(get_db)) -> ProductListItem:

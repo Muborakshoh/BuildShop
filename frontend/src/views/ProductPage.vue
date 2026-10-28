@@ -75,15 +75,19 @@
           <button class="btn-submit-review" @click="submitReview" :disabled="!newRating || submitting">
             {{ submitting ? '...' : (t('submit') || 'Фиристодан') }}
           </button>
+          <p v-if="reviewPending" class="review-pending">
+           ✓ Отзыв отправлен на модерацию и появится после проверки администратором
+          </p>
           <p v-if="reviewError" class="review-error">{{ reviewError }}</p>
         </div>
 
         <div v-if="reviews.length === 0" class="no-reviews">{{ t('product_noReviews') }}</div>
         <div v-for="r in reviews" :key="r.id" class="review-card">
           <div class="review-header">
-            <div class="review-avatar">{{ (r.user_name || '?')[0] }}</div>
+            <div class="review-avatar">{{ (r.user?.full_name || '?')[0].toUpperCase() }}</div>
             <div>
-              <span class="review-author">{{ r.user_name || t('product_anonymous') }}</span>
+              <span class="review-author">{{ r.user?.full_name || t('product_anonymous') }}</span>
+              <span v-if="r.status === 'pending'" class="review-status-badge">на модерации</span>
               <span class="review-date">{{ formatDate(r.created_at) }}</span>
             </div>
             <span class="review-stars">
@@ -125,6 +129,7 @@ const newText = ref('')
 const submitting = ref(false)
 const reviewError = ref('')
 const userReview = computed(() => reviews.value.find(r => r.user_id === auth.user?.id))
+const reviewPending = ref(false)
 const avgRating = computed(() => {
   if (!reviews.value.length) return 0
   return reviews.value.reduce((s,r) => s + r.rating, 0) / reviews.value.length
@@ -142,7 +147,11 @@ async function submitReview() {
   reviewError.value = ''
   try {
     const rev = await api.post('/reviews/', { product_id: product.value.id, rating: newRating.value, text: newText.value || null })
-    reviews.value.unshift(rev)
+    if (rev.status === 'pending'){
+       reviewPending.value = true
+    } else {
+      reviews.value.unshift(rev)
+    }
     newRating.value = 0
     newText.value = ''
   } catch (e) {
@@ -241,6 +250,7 @@ onMounted(async () => {
 .review-stars{margin-left:auto}
 .review-text{color:var(--muted);font-size:14px;line-height:1.5}
 .no-reviews{text-align:center;padding:24px;color:var(--muted);font-size:14px}
+.review-pending{color:#059669;font-size:13px;margin-top:8px}
 .not-found{text-align:center;padding:60px;color:var(--muted);font-size:16px}
 
 @media(max-width:768px){
@@ -248,3 +258,15 @@ onMounted(async () => {
   .product-image{flex:none;width:100%;height:240px}
 }
 </style>
+
+.review-status-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: #f59e0b;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}

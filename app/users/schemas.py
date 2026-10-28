@@ -1,26 +1,37 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from app.core.validators import validate_email
 from app.users.models import UserRole
 
 
 class UserCreate(BaseModel):
-    email: EmailStr
+    email: str
     full_name: str = Field(min_length=2, max_length=255)
     password: str = Field(min_length=8, max_length=128)
 
+    @field_validator("email")
+    @classmethod
+    def validate_email_field(cls, v: str) -> str:
+        return validate_email(v)
+
 
 class AdminUserCreate(BaseModel):
-    email: EmailStr
+    email: str
     full_name: str = Field(min_length=2, max_length=255)
     password: str = Field(min_length=8, max_length=128)
     role: UserRole = UserRole.BUYER
 
+    @field_validator("email")
+    @classmethod
+    def validate_email_field(cls, v: str) -> str:
+        return validate_email(v)
+
 
 class UserRead(BaseModel):
     id: int
-    email: EmailStr
+    email: str
     full_name: str
     role: UserRole
     is_active: bool

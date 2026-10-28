@@ -9,7 +9,7 @@ from app.cashier.repository import CashierRepository
 from app.cashier.schemas import CashSaleCreate, CashShiftClose, CashShiftOpen, CashShiftSummary
 from app.inventory.service import InventoryService
 from app.products.repository import ProductRepository
-from app.users.models import User
+from app.users.models import User, UserRole
 
 
 class CashierService:
@@ -30,9 +30,12 @@ class CashierService:
         )
         return self.repo.save_shift(shift)
 
-    def current_shift(self, register_name: str | None = None) -> CashShift:
+    def current_shift(self, register_name: str | None = None, user: User | None = None) -> CashShift:
         shift = self.repo.get_open_shift(register_name)
         if not shift:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No open cash shift")
+        # ✅ продавец видит только свою смену
+        if user and user.role not in (UserRole.ADMIN, UserRole.MANAGER) and shift.opened_by_id != user.id:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No open cash shift")
         return shift
 
@@ -42,12 +45,16 @@ class CashierService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cash shift not found")
         if shift.status == CashShiftStatus.CLOSED:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cash shift already closed")
+        # ✅ продавец закрывает только свою смену
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only close your own shift",
+            )
         shift.status = CashShiftStatus.CLOSED
         shift.closed_by_id = user.id
         shift.actual_cash = data.actual_cash
         shift.closed_at = datetime.now(UTC)
         return self.repo.save_shift(shift)
-
     def list_shifts(self, skip: int = 0, limit: int = 100) -> list[CashShift]:
         return self.repo.list_shifts(skip=skip, limit=limit)
 
@@ -123,7 +130,7 @@ class CashierService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cash shift not found")
         return self.repo.list_transactions(shift_id, skip=skip, limit=limit)
 
-    def shift_summary(self, shift_id: int) -> CashShiftSummary:
+    def shift_summary(self, shift_id: int, user: User) -> CashShiftSummary:
         shift = self.repo.get_shift(shift_id)
         if not shift:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cash shift not found")
@@ -165,3 +172,69 @@ class CashierService:
 
     def _receipt_number(self, shift_id: int) -> str:
         return f"R{shift_id}-{datetime.now(UTC).strftime('%Y%m%d%H%M%S%f')}"
+
+    def x_report(self, shift_id: int, user: User) -> dict:
+        """Generate intermediate X-report for an open shift."""
+        shift = self.repo.get_shift(shift_id)
+        if not shift:
+            raise HTTPException(status_code=404, detail="Cash shift not found")
+        if shift.status != CashShiftStatus.OPEN:
+            raise HTTPException(status_code=400, detail="X-report only available for open shifts")
+        if user.role not in (UserRole.ADMIN, UserRole.MANAGER) and shift.opened_by_id != user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only view your own shift report")
+        
+        transactions = self.repo.list_transactions(shift_id, limit=1000)
+        sales = [t for t in transactions if t.operation_type == CashOperationType.SALE]
+        refunds = [t for t in transactions if t.operation_type == CashOperationType.REFUND]
+        
+        sales_total = sum(t.total_amount for t in sales)
+        refunds_total = sum(t.total_amount for t in refunds)
+        cash_total = sum(t.cash_amount for t in sales) - sum(t.cash_amount for t in refunds)
+        card_total = sum(t.card_amount for t in sales) - sum(t.card_amount for t in refunds)
+        
+        return {
+            "shift": shift,
+            "sales_count": len(sales),
+            "refunds_count": len(refunds),
+            "sales_total": sales_total,
+            "refunds_total": refunds_total,
+            "cash_total": cash_total,
+            "card_total": card_total,
+            "net_cash": shift.expected_cash,
+            "receipt_count": len(transactions),
+            "generated_at": datetime.now(UTC),
+        }
+
+    def z_report(self, shift_id: int, user: User) -> dict:
+        """Generate final Z-report for a closed shift."""
+        shift = self.repo.get_shift(shift_id)
+        if not shift:
+            raise HTTPException(status_code=404, detail="Cash shift not found")
+        if shift.status != CashShiftStatus.CLOSED:
+            raise HTTPException(status_code=400, detail="Z-report only available for closed shifts")
+        if user.role not in (UserRole.ADMIN, UserRole.MANAGER) and shift.opened_by_id != user.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only view your own shift report")
+        
+        transactions = self.repo.list_transactions(shift_id, limit=1000)
+        sales = [t for t in transactions if t.operation_type == CashOperationType.SALE]
+        refunds = [t for t in transactions if t.operation_type == CashOperationType.REFUND]
+        
+        sales_total = sum(t.total_amount for t in sales)
+        refunds_total = sum(t.total_amount for t in refunds)
+        cash_total = sum(t.cash_amount for t in sales) - sum(t.cash_amount for t in refunds)
+        card_total = sum(t.card_amount for t in sales) - sum(t.card_amount for t in refunds)
+        
+        discrepancy = (shift.actual_cash or Decimal("0")) - shift.expected_cash
+        
+        return {
+            "shift": shift,
+            "sales_count": len(sales),
+            "refunds_count": len(refunds),
+            "sales_total": sales_total,
+            "refunds_total": refunds_total,
+            "cash_total": cash_total,
+            "card_total": card_total,
+            "discrepancy": discrepancy,
+            "receipt_count": len(transactions),
+            "generated_at": datetime.now(UTC),
+        }

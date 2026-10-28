@@ -29,7 +29,7 @@ function changeLang(val) {
 function changeFontSize(val) {
   fontSize.value = val
   localStorage.setItem('fontSize', val)
-  document.documentElement.style.fontSize = val + 'px'
+  document.body.style.zoom = (val / 16)
 }
 function doLogout() {
   auth.logout()
@@ -49,7 +49,7 @@ function onClickOutside(e) {
 onMounted(() => {
   document.addEventListener('click', onClickOutside, true)
   if (localStorage.getItem('fontSize')) {
-    document.documentElement.style.fontSize = localStorage.getItem('fontSize') + 'px'
+    document.body.style.zoom = (localStorage.getItem('fontSize') / 16)
   }
 })
 onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
@@ -175,8 +175,6 @@ onUnmounted(() => document.removeEventListener('click', onClickOutside, true))
               <div v-if="showInfo" class="dd-info-panel">
                 <div class="info-row"><span>{{ t('project_name') || 'Лоиҳа' }}</span><strong>СохтМатериал</strong></div>
                 <div class="info-row"><span>{{ t('version') || 'Версия' }}</span><strong>2.0.0</strong></div>
-                <div class="info-row"><span>Backend</span><strong>FastAPI + PostgreSQL</strong></div>
-                <div class="info-row"><span>Frontend</span><strong>Vue 3 + Vite</strong></div>
               </div>
             </Transition>
 

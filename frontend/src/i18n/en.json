@@ -462,7 +462,6 @@
   "docs_menu": "Contents",
   "nav_docs": "User Guide",
   "color_theme": "Site color",
-
   "cms_admin_title": "Site Management",
   "cms_pages_help_title": "Site Pages",
   "cms_pages_help_text": "Create custom pages: About Us, Contacts, Services, etc. Each page has its own URL (slug) and can be added to navigation. Published pages are visible to visitors.",
@@ -494,5 +493,9 @@
   "cms_media_help_text": "Upload images and files. After uploading, copy the file URL and paste it into pages, news, or settings. Supported formats: JPG, PNG, GIF, WebP, PDF, SVG.",
   "cms_media_empty_hint": "Upload images — use them in pages, news, and site settings. Click the button above to upload.",
   "cms_audit_help_title": "Activity Log",
-  "cms_audit_help_text": "All CMS actions are logged here: creating, editing, and deleting content. Useful for tracking changes."
+  "cms_audit_help_text": "All CMS actions are logged here: creating, editing, and deleting content. Useful for tracking changes.",
+  "admin_promos": "Promo codes",
+  "admin_promos_desc": "Discounts and coupons",
+  "admin_reviews": "Reviews",
+  "admin_reviews_desc": "Review moderation"
 }

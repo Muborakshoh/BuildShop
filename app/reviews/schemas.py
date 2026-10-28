@@ -2,6 +2,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.reviews.models import ReviewStatus
+
 
 class ReviewCreate(BaseModel):
     product_id: int
@@ -14,6 +16,10 @@ class ReviewUpdate(BaseModel):
     text: str | None = Field(default=None, max_length=2000)
 
 
+class ReviewModerate(BaseModel):
+    status: ReviewStatus
+
+
 class ReviewAuthor(BaseModel):
     id: int
     full_name: str
@@ -22,10 +28,12 @@ class ReviewAuthor(BaseModel):
 
 
 class ReviewOut(BaseModel):
+    user_id: int
     id: int
     product_id: int
     rating: int
     text: str | None
+    status: ReviewStatus
     created_at: datetime
     updated_at: datetime
     user: ReviewAuthor

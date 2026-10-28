@@ -30,5 +30,6 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     orders = relationship("Order", back_populates="user")
+    cart_items = relationship("CartItem", back_populates="user", cascade="all, delete-orphan")
     cash_shifts = relationship("CashShift", foreign_keys="CashShift.opened_by_id", back_populates="opened_by")
     cash_transactions = relationship("CashTransaction", back_populates="seller")

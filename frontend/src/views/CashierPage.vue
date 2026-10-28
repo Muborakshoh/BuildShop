@@ -41,6 +41,19 @@ const processing = ref(false)
 const recentSales = ref([])
 const showReceipt = ref(null)
 
+// Отчёты
+const showXReport = ref(false)
+const xReport = ref(null)
+const zReport = ref(null)
+const closedShiftId = ref(null)
+
+async function openXReport() {
+  try {
+    xReport.value = await api.get(`/cashier/shifts/${shift.value.id}/x-report`)
+    showXReport.value = true
+  } catch (e) { showToast(e.message, 'err') }
+}
+
 // Toast
 const toast = ref('')
 const toastType = ref('ok')
@@ -83,7 +96,11 @@ async function prepareCloseShift() {
 
 async function closeShift() {
   try {
-    await api.post(`/cashier/shifts/${shift.value.id}/close`, closeForm.value)
+    const closed = await api.post(`/cashier/shifts/${shift.value.id}/close`, closeForm.value)
+    closedShiftId.value = closed.id
+    try {
+      zReport.value = await api.get(`/cashier/shifts/${closed.id}/z-report`)
+    } catch { zReport.value = null }
     shift.value = null
     showCloseModal.value = false
     shiftSummary.value = null
@@ -260,7 +277,10 @@ function formatTime(d) {
               <div class="shift-dot"></div>
               <span>{{ shift.register_name }}</span>
             </div>
-            <button class="shift-close-btn" @click="prepareCloseShift">{{ t('close_shift') || 'Пӯшидан' }}</button>
+             <div class="shift-actions">
+              <button class="shift-x-btn" @click="openXReport">X</button>
+              <button class="shift-close-btn" @click="prepareCloseShift">{{ t('close_shift') || 'Пӯшидан' }}</button>
+             </div>            
           </div>
 
           <!-- Cart items -->
@@ -408,6 +428,51 @@ function formatTime(d) {
               <div class="csm-row"><span>{{ t('card_total') || 'Корт' }}</span><strong>{{ money(shiftSummary.card_total) }}</strong></div>
               <div class="csm-row highlight"><span>{{ t('expected') || 'Бояд бошад' }}</span><strong>{{ money(shiftSummary.shift.expected_cash) }}</strong></div>
             </div>
+            <!-- X-отчёт -->
+<Transition name="modal">
+  <div v-if="showXReport" class="modal-overlay" @click.self="showXReport=false">
+    <div class="close-shift-modal">
+      <h2>X-отчёт · {{ shift?.register_name }}</h2>
+      <div class="csm-summary" v-if="xReport">
+        <div class="csm-row"><span>Продаж</span><strong>{{ xReport.sales_count }}</strong></div>
+        <div class="csm-row"><span>Возвратов</span><strong>{{ xReport.refunds_count }}</strong></div>
+        <div class="csm-row"><span>Выручка</span><strong>{{ money(xReport.sales_total) }}</strong></div>
+        <div class="csm-row"><span>Нақд</span><strong>{{ money(xReport.cash_total) }}</strong></div>
+        <div class="csm-row"><span>Корт</span><strong>{{ money(xReport.card_total) }}</strong></div>
+        <div class="csm-row highlight"><span>В кассе</span><strong>{{ money(xReport.net_cash) }}</strong></div>
+      </div>
+      <div class="csm-actions">
+        <button class="btn-close-shift" @click="showXReport=false">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</Transition>
+
+<!-- Z-отчёт после закрытия -->
+<Transition name="modal">
+  <div v-if="zReport" class="modal-overlay" @click.self="zReport=null">
+    <div class="close-shift-modal">
+      <h2>Z-отчёт · смена #{{ zReport.shift.id }}</h2>
+      <div class="csm-summary">
+        <div class="csm-row"><span>Продаж</span><strong>{{ zReport.sales_count }}</strong></div>
+        <div class="csm-row"><span>Выручка</span><strong>{{ money(zReport.sales_total) }}</strong></div>
+        <div class="csm-row"><span>Нақд</span><strong>{{ money(zReport.cash_total) }}</strong></div>
+        <div class="csm-row"><span>Корт</span><strong>{{ money(zReport.card_total) }}</strong></div>
+        <div class="csm-row"><span>Должно быть</span><strong>{{ money(zReport.shift.expected_cash) }}</strong></div>
+        <div class="csm-row"><span>Фактически</span><strong>{{ money(zReport.shift.actual_cash) }}</strong></div>
+        <div class="csm-row highlight">
+          <span>Расхождение</span>
+          <strong :style="{color: Number(zReport.discrepancy) === 0 ? '#16a34a' : '#ef4444'}">
+            {{ money(zReport.discrepancy) }}
+          </strong>
+        </div>
+      </div>
+      <div class="csm-actions">
+        <button class="btn-close-shift" @click="zReport=null">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</Transition>
             <label class="oss-field">
               <span>{{ t('actual_cash') || 'Пули воқеӣ дар касса' }}</span>
               <input type="number" v-model.number="closeForm.actual_cash" min="0" step="0.01"/>
@@ -487,6 +552,9 @@ function formatTime(d) {
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .shift-close-btn{padding:6px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer}
 .shift-close-btn:hover{border-color:#ef4444;color:#ef4444}
+.shift-actions{display:flex;gap:4px}
+.shift-x-btn{padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer}
+.shift-x-btn:hover{border-color:var(--accent);color:var(--accent)}
 
 .cart-items{flex:1;overflow-y:auto;padding:8px}
 .cart-empty{display:flex;align-items:center;justify-content:center;height:100%}

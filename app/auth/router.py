@@ -37,5 +37,6 @@ def login(payload: LoginRequest, request: Request, db: Session = Depends(get_db)
 
 
 @router.post("/refresh", response_model=TokenPair)
-def refresh(payload: RefreshRequest, db: Session = Depends(get_db)) -> TokenPair:
+def refresh(payload: RefreshRequest, request: Request, db: Session = Depends(get_db)) -> TokenPair:
+    rate_limit(request, key_prefix="auth:refresh", max_calls=30, window_seconds=3600)
     return AuthService(db).refresh(payload)

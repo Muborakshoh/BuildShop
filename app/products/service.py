@@ -160,3 +160,13 @@ class ProductService:
                 item.product_name = product.name
         self.db.flush()
         self.products.delete(product)
+
+    def count_products(
+        self,
+        search: str | None = None,
+        category_id: int | None = None,
+        min_price: float | None = None,
+        max_price: float | None = None,
+        in_stock: bool | None = None,
+    ) -> int:
+        return self.products.count(search, category_id, min_price, max_price, in_stock)

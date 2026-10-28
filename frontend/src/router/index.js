@@ -38,9 +38,21 @@ const routes = [
     meta: { requiresAdmin: true }
   },
   {
+    path: '/admin/promos',
+    name: 'AdminPromos',
+    component: () => import('@/views/AdminPromos.vue'),
+    meta: { requiresAdmin: true }
+  },
+  {
     path: '/admin/analytics',
     name: 'AdminAnalytics',
     component: () => import('@/views/AdminAnalytics.vue'),
+    meta: { requiresAdmin: true }
+  },
+  {
+    path: '/admin/reviews',
+    name: 'AdminReviews',
+    component: () => import('@/views/AdminReviews.vue'),
     meta: { requiresAdmin: true }
   },
   {

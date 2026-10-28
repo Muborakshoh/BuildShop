@@ -97,3 +97,25 @@ class ProductRepository:
         self.db.delete(product)
         self.db.commit()
 
+    def count(
+        self,
+        search: str | None = None,
+        category_id: int | None = None,
+        min_price: float | None = None,
+        max_price: float | None = None,
+        in_stock: bool | None = None,
+    ) -> int:
+        from sqlalchemy import func
+        stmt = select(func.count(Product.id))
+        if search:
+            like = f"%{search}%"
+            stmt = stmt.where(or_(Product.name.ilike(like), Product.description.ilike(like)))
+        if category_id:
+            stmt = stmt.where(Product.category_id == category_id)
+        if min_price is not None:
+            stmt = stmt.where(Product.price >= min_price)
+        if max_price is not None:
+            stmt = stmt.where(Product.price <= max_price)
+        if in_stock is not None:
+            stmt = stmt.join(Inventory).where(Inventory.quantity > 0 if in_stock else Inventory.quantity <= 0)
+        return self.db.scalar(stmt) or 0

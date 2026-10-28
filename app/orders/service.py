@@ -31,6 +31,11 @@ class OrderService:
                 product = self.products.get(item.product_id)
                 if not product:
                     raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Product {item.product_id} not found")
+                if hasattr(product, 'is_active') and not product.is_active:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Product '{product.name}' is not available"
+                    )
                 self.inventory.reserve_stock(item.product_id, item.quantity)
                 total += product.price * item.quantity
                 order_items.append(OrderItem(product_id=product.id, quantity=item.quantity, unit_price=product.price, product_name=product.name))

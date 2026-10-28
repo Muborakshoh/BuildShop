@@ -1,9 +1,8 @@
-"""Add reviews table."""
-
 from collections.abc import Sequence
 
 import sqlalchemy as sa
 from alembic import op
+from sqlalchemy import inspect
 
 revision: str = "20260612_0006"
 down_revision: str | None = "20260612_0005"
@@ -12,6 +11,10 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
+    bind = op.get_bind()
+    if inspect(bind).has_table("reviews"):
+        return
+    
     op.create_table(
         "reviews",
         sa.Column("id", sa.Integer(), primary_key=True, autoincrement=True),

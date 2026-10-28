@@ -34,7 +34,9 @@ const adminSections = [
   { to: '/admin/analytics', icon: 'chart', label: 'nav_analytics', desc: 'admin_analytics_desc', color: '#8b5cf6' },
   { to: '/admin/users', icon: 'users', label: 'admin_users', desc: 'admin_users_desc', color: '#059669' },
   { to: '/admin/cms', icon: 'layout', label: 'admin_cms', desc: 'admin_cms_desc', color: '#d97706' },
+  { to: '/admin/promos', icon: 'tag', label: 'admin_promos', desc: 'admin_promos_desc', color: '#8b5cf6' },
   { to: '/cashier', icon: 'cashier', label: 'nav_cashier', desc: 'admin_cashier_desc', color: '#dc2626' },
+  { to: '/admin/reviews', icon: 'message', label: 'admin_reviews', desc: 'admin_reviews_desc', color: '#f59e0b' },
 ]
 
 const iconSvgs = {
@@ -43,6 +45,8 @@ const iconSvgs = {
   users: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75',
   layout: 'M3 3h18a2 2 0 012 2v14a2 2 0 01-2 2H3a2 2 0 01-2-2V5a2 2 0 012-2zM3 9h18M9 21V9',
   cashier: 'M2 4h20v16H2zM2 10h20M6 14h4',
+  tag: 'M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82zM7 7h.01',
+  message: 'M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7A8.38 8.38 0 014 11.5a8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z',
 }
 
 const statusColors = {
@@ -157,10 +161,8 @@ function formatDate(d) {
           <Transition name="slide-info">
             <div v-if="showInfo" class="info-block">
               <div class="info-r"><span>{{ t('project_name') }}</span><strong>СохтМатериал</strong></div>
-              <div class="info-r"><span>{{ t('version') }}</span><strong>2.0.0 (Vue)</strong></div>
+              <div class="info-r"><span>{{ t('version') }}</span><strong>2.0.0</strong></div>
               <div class="info-r"><span>{{ t('company') }}</span><strong>BuildShop LLC</strong></div>
-              <div class="info-r"><span>Backend</span><strong>FastAPI + PostgreSQL</strong></div>
-              <div class="info-r"><span>Frontend</span><strong>Vue 3 + Vite</strong></div>
             </div>
           </Transition>
         </div>

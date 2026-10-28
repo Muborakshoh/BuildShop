@@ -7,6 +7,7 @@ depends_on = None
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy import inspect  # ✅ добавить
 
 
 def _col_exists(conn, table, column):
@@ -23,6 +24,7 @@ def _add_col(conn, table, column, ddl):
 
 def upgrade() -> None:
     conn = op.get_bind()
+    inspector = inspect(conn)
 
     # 1. User fields
     _add_col(conn, "users", "phone", "phone VARCHAR(20)")
@@ -55,7 +57,7 @@ def upgrade() -> None:
               AND kcu.column_name = 'product_id'
         """), {"tbl": table})
         for row in result.fetchall():
-            conn.execute(sa.text(f'ALTER TABLE {table} DROP CONSTRAINT "{row[0]}"'))
+            conn.execute(sa.text(f'ALTER TABLE {table} DROP CONSTRAINT IF EXISTS "{row[0]}"'))
 
         conn.execute(sa.text(f"ALTER TABLE {table} ALTER COLUMN product_id DROP NOT NULL"))
         conn.execute(sa.text(f"""
@@ -63,31 +65,32 @@ def upgrade() -> None:
             FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL
         """))
 
-    # 5. Delivery zones table
-    conn.execute(sa.text("""
-        CREATE TABLE IF NOT EXISTS delivery_zones (
-            id SERIAL PRIMARY KEY,
-            name VARCHAR(120) NOT NULL,
-            description TEXT,
-            price NUMERIC(10,2) NOT NULL,
-            min_order_for_free NUMERIC(10,2),
-            estimated_days VARCHAR(20),
-            is_active BOOLEAN NOT NULL DEFAULT true,
-            sort_order INTEGER NOT NULL DEFAULT 0,
-            translations TEXT
-        )
-    """))
-
-    # Seed defaults
-    result = conn.execute(sa.text("SELECT COUNT(*) FROM delivery_zones"))
-    if result.scalar() == 0:
+    # 5. Delivery zones table — только если не существует
+    if not inspector.has_table("delivery_zones"):  # ✅ добавить проверку
         conn.execute(sa.text("""
-            INSERT INTO delivery_zones (name, price, min_order_for_free, estimated_days, sort_order) VALUES
-            ('Душанбе (марказ)', 20, 500, '1 рӯз', 1),
-            ('Душанбе (канорҳо)', 35, 800, '1-2 рӯз', 2),
-            ('Ноҳияҳои наздик', 60, 1500, '2-3 рӯз', 3),
-            ('Байни шаҳрӣ', 120, 3000, '3-5 рӯз', 4)
+            CREATE TABLE delivery_zones (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(120) NOT NULL,
+                description TEXT,
+                price NUMERIC(10,2) NOT NULL,
+                min_order_for_free NUMERIC(10,2),
+                estimated_days VARCHAR(20),
+                is_active BOOLEAN NOT NULL DEFAULT true,
+                sort_order INTEGER NOT NULL DEFAULT 0,
+                translations TEXT
+            )
         """))
+
+        # Seed defaults
+        result = conn.execute(sa.text("SELECT COUNT(*) FROM delivery_zones"))
+        if result.scalar() == 0:
+            conn.execute(sa.text("""
+                INSERT INTO delivery_zones (name, price, min_order_for_free, estimated_days, sort_order) VALUES
+                ('Душанбе (марказ)', 20, 500, '1 рӯз', 1),
+                ('Душанбе (канорҳо)', 35, 800, '1-2 рӯз', 2),
+                ('Ноҳияҳои наздик', 60, 1500, '2-3 рӯз', 3),
+                ('Байни шаҳрӣ', 120, 3000, '3-5 рӯз', 4)
+            """))
 
 
 def downgrade() -> None:

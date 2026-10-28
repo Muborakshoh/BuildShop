@@ -51,6 +51,11 @@ class PromoService:
             raise HTTPException(404, "Promo code not found")
         if not promo.is_active:
             raise HTTPException(400, "Promo code is inactive")
+        
+        # ✅ Проверка персонального промокода
+        if promo.user_id is not None and promo.user_id != user_id:
+            raise HTTPException(403, "This promo code is not available for your account")
+        
         now = datetime.now(timezone.utc)
         if promo.valid_from and now < promo.valid_from:
             raise HTTPException(400, "Promo code is not yet valid")
