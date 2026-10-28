@@ -35,3 +35,4 @@ build/
 .coverage
 htmlcov/
 .pytest_cache/
+app/static/dist/
