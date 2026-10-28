@@ -8,13 +8,11 @@ class Base(DeclarativeBase):
     pass
 
 
-# Render PostgreSQL требует SSL
-connect_args = {"sslmode": "require"} if "render.com" in settings.database_url else {}
+# Render PostgreSQL требует SSL в URL
+database_url = settings.database_url
+if "render.com" in database_url and "sslmode=" not in database_url:
+    database_url += ("&" if "?" in database_url else "?") + "sslmode=require"
 
-engine = create_engine(
-    settings.database_url,
-    pool_pre_ping=True,
-    connect_args=connect_args,
-)
+engine = create_engine(database_url, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
