@@ -3,8 +3,18 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from sqlalchemy import make_url
+
 from app.core.config import settings
 from app.db.session import Base
+
+
+# Fix SSL for Render PostgreSQL
+def get_database_url():
+    url = make_url(settings.database_url)
+    if "render.com" in str(url) and "sslmode" not in url.query:
+        url = url.update_query_dict({"sslmode": "require"})
+    return str(url)
 
 # Import models so SQLAlchemy metadata is complete.
 from app.auth import models as _auth_models  # noqa: F401
@@ -20,7 +30,7 @@ from app.promos import models as _promos_models  # noqa: F401
 from app.delivery import models as _delivery_models  # noqa: F401
 
 config = context.config
-config.set_main_option("sqlalchemy.url", settings.database_url)
+config.set_main_option("sqlalchemy.url", get_database_url())
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
@@ -30,7 +40,7 @@ target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=settings.database_url,
+        url=get_database_url(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
